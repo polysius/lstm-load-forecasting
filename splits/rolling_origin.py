@@ -49,7 +49,7 @@ def generate_folds(
 
     purge_size = input_window + max_horizon
     if min_train_size is None:
-        min_train_size = input_window * 4
+        min_train_size = input_window * 12  # ~12 weeks for robust seasonal estimation
 
     usable = n_samples - purge_size
     test_size = (usable - min_train_size) // n_folds
@@ -69,6 +69,7 @@ def generate_folds(
         if test_end <= test_start:
             break
 
+        n_boundary = min(input_window, train_end)
         fold = Fold(
             fold_id=i,
             train_start=0,
@@ -76,6 +77,7 @@ def generate_folds(
             test_start=test_start,
             test_end=test_end,
             purge_size=purge_size,
+            n_boundary_dropped=n_boundary,
         )
         folds.append(fold)
 

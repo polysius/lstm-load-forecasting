@@ -13,7 +13,7 @@ sarima:
 
 gbm:
   engine: "lightgbm"
-  lag_features: [24, 48, 168]  # all >= max(forecast_horizons)
+  lag_features: [1, 2, 3, 6, 12, 24, 48, 168]  # filtered per step: only lags >= step_ahead used
   n_estimators: 500
   learning_rate: 0.05
   num_leaves: 31
