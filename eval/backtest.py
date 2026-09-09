@@ -15,7 +15,7 @@ import yaml
 from sklearn.preprocessing import StandardScaler
 
 from eval.metrics import compute_all_metrics
-from splits.rolling_origin import generate_folds, split_data
+from splits.rolling_origin import generate_folds
 
 _ROOT = Path(__file__).resolve().parents[1]
 _CONFIG = _ROOT / "config" / "data.yaml"

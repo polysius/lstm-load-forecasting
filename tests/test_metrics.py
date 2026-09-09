@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from eval.metrics import mae, rmse, mape, mase, compute_all_metrics
+from eval.metrics import compute_all_metrics, mae, mape, mase, rmse
 
 
 class TestMAE:

@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 _ROOT = Path(__file__).resolve().parents[1]
 _PLOTS_DIR = _ROOT / "experiments" / "plots"
@@ -58,6 +57,8 @@ def plot_model_comparison(results_dir: Path | None = None) -> None:
 
     frames = []
     for csv in results_dir.glob("*_results.csv"):
+        if "latency" in csv.name:
+            continue
         frames.append(pd.read_csv(csv))
     if not frames:
         print("No results to plot")
@@ -94,6 +95,8 @@ def main() -> None:
     results_dir = _ROOT / "experiments" / "results"
 
     for csv in results_dir.glob("*_results.csv"):
+        if "latency" in csv.name:
+            continue
         df = pd.read_csv(csv)
         for model in df["model"].unique():
             plot_residuals_over_time(csv, model)

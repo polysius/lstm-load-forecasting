@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import zipfile
 from pathlib import Path
 
@@ -44,7 +43,9 @@ def download(force: bool = False) -> Path:
             downloaded += len(chunk)
             if total:
                 pct = downloaded * 100 // total
-                print(f"\r  {downloaded / 1e6:.1f} / {total / 1e6:.1f} MB ({pct}%)", end="", flush=True)
+                mb = downloaded / 1e6
+                total_mb = total / 1e6
+                print(f"\r  {mb:.1f} / {total_mb:.1f} MB ({pct}%)", end="", flush=True)
     print()
 
     with zipfile.ZipFile(zip_path) as zf:

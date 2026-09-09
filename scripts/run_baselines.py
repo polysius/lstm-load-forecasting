@@ -16,7 +16,8 @@ from models.seasonal_naive import SeasonalNaiveForecaster
 
 
 def main() -> None:
-    data_path = Path(__file__).resolve().parents[1] / "data" / "processed" / "electricity_hourly.parquet"
+    root = Path(__file__).resolve().parents[1]
+    data_path = root / "data" / "processed" / "electricity_hourly.parquet"
     if not data_path.exists():
         print(f"Data not found: {data_path}")
         print("Run data/download.py and data/preprocess.py first.")

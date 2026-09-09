@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from splits.rolling_origin import generate_folds, split_data, Fold
+from splits.rolling_origin import generate_folds, split_data
 
 
 class TestFoldGeneration:

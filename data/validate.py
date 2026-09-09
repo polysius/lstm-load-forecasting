@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import yaml
 
@@ -67,7 +66,7 @@ def validate(df: pd.DataFrame, freq: str = "1h") -> dict[str, object]:
             gap_lengths = []
             starts = df.index[gap_starts]
             ends = df.index[gap_ends]
-            for s, e in zip(starts, ends):
+            for s, e in zip(starts, ends, strict=True):
                 gap_lengths.append((e - s).total_seconds() / 3600 + 1)
             total_gap_hours = sum(gap_lengths)
             results["n_gaps"] = n_gaps
@@ -105,7 +104,7 @@ def write_snapshot(results: dict[str, object], dest: Path | None = None) -> None
         "# Data Snapshot",
         "",
         f"**Source:** {cfg['dataset']['source_url']}",
-        f"**Download date:** recorded at download time",
+        "**Download date:** recorded at download time",
         f"**Target client:** {cfg['dataset']['target_client']}",
         "",
         "## Validated properties",

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import yaml
-from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 _CONFIG = _ROOT / "config" / "data.yaml"

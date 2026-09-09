@@ -17,6 +17,12 @@ from models.lstm import LSTMModel
 _ROOT = Path(__file__).resolve().parents[1]
 
 
+CPU_VIABLE = {
+    "hidden_size": 32,
+    "num_layers": 1,
+}
+
+
 def load_configs() -> tuple[dict, dict]:
     with open(_ROOT / "config" / "lstm.yaml") as f:
         lstm_cfg = yaml.safe_load(f)
@@ -69,11 +75,11 @@ def main() -> None:
     print(f"Input window: {input_window}, Max horizon: {max_horizon}")
     print()
 
-    # Create model (CPU)
+    # Create model (CPU-viable config matching trained model)
     model = LSTMModel(
         input_size=1,
-        hidden_size=lstm_cfg["model"]["hidden_size"],
-        num_layers=lstm_cfg["model"]["num_layers"],
+        hidden_size=CPU_VIABLE["hidden_size"],
+        num_layers=CPU_VIABLE["num_layers"],
         dropout=0.0,
         max_horizon=max_horizon,
     )
@@ -148,7 +154,8 @@ def main() -> None:
             "mean_ms": float(np.mean(arr)),
         }
         results.append(result)
-        print(f"  {'onnx_runtime_single':30s}  p50={result['p50_ms']:.2f}ms  p95={result['p95_ms']:.2f}ms")
+        print(f"  {'onnx_runtime_single':30s}  "
+              f"p50={result['p50_ms']:.2f}ms  p95={result['p95_ms']:.2f}ms")
 
         onnx_path.unlink(missing_ok=True)
     except Exception as e:

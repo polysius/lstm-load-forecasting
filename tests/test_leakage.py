@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
-import pytest
 
-from splits.rolling_origin import generate_folds, split_data
+from splits.rolling_origin import generate_folds
 
 
 class TestChronologicalSplitting:
@@ -123,11 +121,6 @@ class TestNoiseCanary:
         rng = np.random.default_rng(42)
         n = 3000
         noise = rng.standard_normal(n)
-
-        # Naive persistence forecast: y_hat(t+1) = y(t)
-        y_true = noise[1:]
-        y_naive = noise[:-1]
-        naive_mae = np.mean(np.abs(y_true - y_naive))
 
         # A "trained" model on noise should not beat naive
         # (Here we simulate by checking that the series has no predictable structure)

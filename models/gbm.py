@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import yaml
-from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 

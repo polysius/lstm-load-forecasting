@@ -11,7 +11,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import numpy as np
 import pandas as pd
 import yaml
 
@@ -43,7 +42,15 @@ def main() -> None:
         print(f"LSTM seed={seed}")
         print(f"{'='*60}")
 
-        model = LSTMForecaster(seed=seed)
+        model = LSTMForecaster(
+            hidden_size=32,
+            num_layers=1,
+            dropout=0.0,
+            batch_size=256,
+            max_epochs=30,
+            patience=5,
+            seed=seed,
+        )
         start = time.time()
         results = run_backtest(model, df)
         elapsed = time.time() - start

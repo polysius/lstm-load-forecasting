@@ -42,28 +42,30 @@ python data/validate.py
 | Model | Horizon | MAE | RMSE | MASE |
 |---|---|---|---|---|
 | naive | h=1 | 0.1833 | 0.4309 | **0.4727** |
-| lstm | h=1 | 0.2348 | 0.4353 | **0.5831** |
-| gbm | h=1 | 0.2291 | 0.4086 | **0.5892** |
-| sarima | h=1 | 0.2721 | 0.5907 | **0.6924** |
+| lstm | h=1 | 0.2509 | 0.4498 | **0.6216** |
+| sarima | h=1 | 0.2441 | 0.4817 | **0.6389** |
 | seasonal_naive | h=1 | 0.2750 | 0.6219 | **0.7410** |
+| gbm | h=1 | 0.3923 | 0.6062 | **0.9939** |
 | naive | h=6 | 0.2501 | 0.5465 | **0.6442** |
-| lstm | h=6 | 0.3065 | 0.5024 | **0.7222** |
+| lstm | h=6 | 0.3014 | 0.5061 | **0.7315** |
 | seasonal_naive | h=6 | 0.2750 | 0.6220 | **0.7410** |
-| gbm | h=6 | 0.3382 | 0.5355 | **0.8663** |
-| sarima | h=6 | 0.3566 | 0.7347 | **0.9102** |
+| sarima | h=6 | 0.3105 | 0.5952 | **0.8198** |
+| gbm | h=6 | 0.4293 | 0.6435 | 1.1031 |
 | seasonal_naive | h=24 | 0.2756 | 0.6229 | **0.7426** |
 | naive | h=24 | 0.3066 | 0.6124 | **0.8115** |
-| lstm | h=24 | 0.3513 | 0.5860 | **0.8413** |
-| sarima | h=24 | 0.4200 | 0.8406 | 1.1236 |
-| gbm | h=24 | 0.4798 | 0.6983 | 1.2375 |
+| lstm | h=24 | 0.3484 | 0.5862 | **0.8549** |
+| sarima | h=24 | 0.3614 | 0.6959 | **0.9792** |
+| gbm | h=24 | 0.5252 | 0.7456 | 1.3606 |
+
+*LSTM results are mean across 3 seeds (42, 123, 456). All models evaluated via 5-fold expanding-window cross-validation (SARIMA: 3 folds due to computational cost).*
 
 ## Did the LSTM earn its complexity?
 
-- **h=1:** Best = naive (MASE 0.4727). LSTM (0.5831) beats seasonal naive (0.7410).
-- **h=6:** Best = naive (MASE 0.6442). LSTM (0.7222) beats seasonal naive (0.7410).
-- **h=24:** Best = seasonal_naive (MASE 0.7426). LSTM (0.8413) does not beat seasonal naive (0.7426).
+- **h=1:** Best = naive (MASE 0.4727). LSTM (0.6216) beats seasonal naive (0.7410).
+- **h=6:** Best = naive (MASE 0.6442). LSTM (0.7315) beats seasonal naive (0.7410).
+- **h=24:** Best = seasonal_naive (MASE 0.7426). LSTM (0.8549) does not beat seasonal naive (0.7426).
 
-The LSTM (mean MASE 0.7155) beats seasonal naive (0.7415) overall, but naive persistence (0.6428) remains the strongest baseline at short horizons. The LSTM earns partial complexity: it adds value at longer horizons where persistence degrades.
+The LSTM (mean MASE 0.7360) beats seasonal naive (0.7415) overall by a razor-thin margin, but naive persistence (0.6428) remains the strongest baseline at short horizons. The LSTM earns partial complexity at h=6 where it edges past seasonal naive, but its advantage is marginal and does not justify the computational cost for this single-client, calendar-features-only setup. GBM (MASE 1.15 mean) performs worst among all models, a well-known result for deep lag-based gradient boosting on smooth periodic time series.
 
 ## Leakage prevention
 

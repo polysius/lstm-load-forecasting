@@ -46,7 +46,6 @@ def format_complexity_answer(df: pd.DataFrame) -> str:
     for h in sorted(summary["horizon"].unique()):
         h_data = summary[summary["horizon"] == h].set_index("model")["mase"]
         lstm_mase = h_data.get("lstm", None)
-        naive_mase = h_data.get("naive", None)
         sn_mase = h_data.get("seasonal_naive", None)
         best_model = h_data.idxmin()
         best_mase = h_data.min()
@@ -60,21 +59,25 @@ def format_complexity_answer(df: pd.DataFrame) -> str:
         lines.append(line)
 
     verdict = []
-    lstm_all = summary[summary["model"] == "lstm"]["mase"].mean() if "lstm" in summary["model"].values else None
+    has_lstm = "lstm" in summary["model"].values
+    lstm_all = summary[summary["model"] == "lstm"]["mase"].mean() if has_lstm else None
     sn_all = summary[summary["model"] == "seasonal_naive"]["mase"].mean()
     naive_all = summary[summary["model"] == "naive"]["mase"].mean()
 
     verdict.append("")
     if lstm_all is not None and lstm_all < sn_all:
         verdict.append(
-            f"The LSTM (mean MASE {lstm_all:.4f}) beats seasonal naive ({sn_all:.4f}) overall, "
-            f"but naive persistence ({naive_all:.4f}) remains the strongest baseline at short horizons. "
-            "The LSTM earns partial complexity: it adds value at longer horizons where persistence degrades."
+            f"The LSTM (mean MASE {lstm_all:.4f}) beats seasonal naive"
+            f" ({sn_all:.4f}) overall, but naive persistence"
+            f" ({naive_all:.4f}) remains the strongest baseline at"
+            " short horizons. The LSTM earns partial complexity: it"
+            " adds value at longer horizons where persistence degrades."
         )
     elif lstm_all is not None:
         verdict.append(
-            f"The LSTM (mean MASE {lstm_all:.4f}) does not consistently beat seasonal naive ({sn_all:.4f}). "
-            "The added complexity is not justified on this dataset with this configuration."
+            f"The LSTM (mean MASE {lstm_all:.4f}) does not consistently"
+            f" beat seasonal naive ({sn_all:.4f}). The added complexity"
+            " is not justified on this dataset with this configuration."
         )
     else:
         verdict.append("LSTM results not yet available.")

@@ -130,10 +130,7 @@ class LSTMForecaster:
             max_horizon=self.max_horizon,
         ).to(self._device)
 
-        if self.loss_fn_name == "huber":
-            loss_fn = nn.HuberLoss()
-        else:
-            loss_fn = nn.L1Loss()
+        loss_fn = nn.HuberLoss() if self.loss_fn_name == "huber" else nn.L1Loss()
 
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self.learning_rate)
 
