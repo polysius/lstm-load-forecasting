@@ -95,8 +95,8 @@ Single-sequence inference runs in ~2.5ms on CPU (Snapdragon X Plus). JIT tracing
 
 - **Short horizons (h=1):** Naive persistence dominates. Hourly load autocorrelation is so strong that "repeat last value" is hard to beat with any learned model. The LSTM's overhead buys nothing here.
 - **Day-ahead (h=24):** Seasonal naive outperforms the LSTM. Repeating yesterday's load profile is more reliable than the LSTM's learned dynamics, likely because the CPU-viable architecture (hidden=32, 1 layer) is undersized for capturing multi-scale patterns.
-- **GBM degradation at h=24:** The per-step-ahead GBM strategy accumulates errors at longer horizons (MASE 1.24), suggesting lag features alone cannot carry day-ahead prediction without exogenous inputs.
-- **SARIMA scalability:** SARIMAX(1,1,1)(1,1,1,24) hits practical limits — fitting is slow enough to restrict evaluation to 3 folds, and MASE > 1.0 at h=6 and h=24.
+- **GBM degradation:** The per-step-ahead GBM strategy degrades badly at longer horizons (MASE 1.36 at h=24), suggesting lag features alone cannot carry prediction without exogenous inputs.
+- **SARIMA scalability:** SARIMAX(1,1,1)(1,1,1,24) hits practical limits — fitting is slow enough to restrict evaluation to 3 folds.
 
 ![Model comparison](experiments/plots/model_comparison_mase.png)
 
@@ -105,4 +105,5 @@ Single-sequence inference runs in ~2.5ms on CPU (Snapdragon X Plus). JIT tracing
 - Single client from the UCI dataset; results may not generalize across clients
 - No exogenous features (weather, price signals) — calendar features only
 - Single dataset; no cross-dataset validation
-- Hyperparameter sweep bounded to 30 runs
+- CPU-viable LSTM architecture (hidden=32, 1 layer) — larger models may perform better with GPU
+- No hyperparameter sweep performed (CPU-only constraint)
