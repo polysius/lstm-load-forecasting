@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lstm-load-forecasting"
+version = "0.1.0"
+description = "Leakage-audited multi-horizon electricity load forecasting with LSTM and baseline ladder"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Raghunath Gurumoorthy"}]
+
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "torch>=2.0",
+    "statsmodels>=0.14",
+    "lightgbm>=4.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.1",
+    "onnx>=1.14",
+    "onnxruntime>=1.16",
+]
+
+[tool.setuptools.packages.find]
+include = ["data", "features", "splits", "models", "eval", "scripts"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

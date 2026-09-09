@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+lstm_load_forecasting.egg-info/
+dist/
+build/
+.venv/
+.venv311/
+venv/
+
+# Data (raw files are large — download via script)
+data/raw/
+data/processed/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Experiment artifacts (large)
+experiments/sweeps/*.pt
+experiments/sweeps/*.onnx
+
+# Keep committed results
+!experiments/results/*.csv

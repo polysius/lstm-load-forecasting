@@ -1,0 +1,20 @@
+naive:
+  description: "Persistence: y_hat(t+h) = y(t)"
+
+seasonal_naive:
+  seasonal_period: 24  # must match config/data.yaml seasonal.primary_period
+  description: "Seasonal persistence: y_hat(t+h) = y(t+h-s)"
+
+sarima:
+  max_fit_seconds: 300  # cap fitting time per fold
+  order_selection: "auto"  # auto_arima from statsmodels/pmdarima
+  seasonal_order_P_max: 2
+  seasonal_order_Q_max: 2
+
+gbm:
+  engine: "lightgbm"
+  lag_features: [24, 48, 168]  # all >= max(forecast_horizons)
+  n_estimators: 500
+  learning_rate: 0.05
+  num_leaves: 31
+  early_stopping_rounds: 50

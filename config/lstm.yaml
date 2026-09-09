@@ -1,0 +1,21 @@
+model:
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  bidirectional_encoder: false
+
+training:
+  learning_rate: 0.001
+  batch_size: 64
+  max_epochs: 100
+  patience: 10
+  gradient_clip_norm: 1.0
+  loss: "huber"  # more robust than MSE for load spikes
+  seeds: [42, 123, 456]
+
+sweep:
+  hidden_size: [64, 128, 256]
+  num_layers: [1, 2, 3]
+  learning_rate: [0.0005, 0.001, 0.005]
+  dropout: [0.1, 0.2, 0.3]
+  max_total_runs: 30
