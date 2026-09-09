@@ -31,11 +31,23 @@ def download(force: bool = False) -> Path:
         print(f"Already downloaded: {dest}")
         return dest
 
+    zip_path = _RAW_DIR / "download.zip"
     print(f"Downloading from {url} ...")
-    resp = requests.get(url, timeout=120)
+    resp = requests.get(url, timeout=(30, 600), stream=True)
     resp.raise_for_status()
 
-    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+    total = int(resp.headers.get("content-length", 0))
+    downloaded = 0
+    with open(zip_path, "wb") as f:
+        for chunk in resp.iter_content(chunk_size=1 << 20):
+            f.write(chunk)
+            downloaded += len(chunk)
+            if total:
+                pct = downloaded * 100 // total
+                print(f"\r  {downloaded / 1e6:.1f} / {total / 1e6:.1f} MB ({pct}%)", end="", flush=True)
+    print()
+
+    with zipfile.ZipFile(zip_path) as zf:
         names = zf.namelist()
         txt_files = [n for n in names if n.endswith(".txt")]
         if not txt_files:
@@ -45,6 +57,7 @@ def download(force: bool = False) -> Path:
         with zf.open(extract_name) as src, open(dest, "wb") as dst:
             dst.write(src.read())
 
+    zip_path.unlink(missing_ok=True)
     print(f"Saved to {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
     return dest
 

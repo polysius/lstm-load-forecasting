@@ -60,10 +60,11 @@ def preprocess(raw_path: Path | None = None) -> pd.DataFrame:
     series = df_raw[target_client].copy()
     series.name = "load_kw"
 
-    # Localize to timezone
+    # Localize timestamps — the raw data uses local Portuguese time but has DST
+    # ambiguities. Localize as UTC first (preserving numeric values), then convert.
     tz = cfg["preprocessing"]["timezone"]
     if series.index.tz is None:
-        series.index = series.index.tz_localize(tz, ambiguous="infer", nonexistent="shift_forward")
+        series.index = series.index.tz_localize("UTC").tz_convert(tz)
     else:
         series.index = series.index.tz_convert(tz)
 
@@ -106,6 +107,17 @@ def preprocess(raw_path: Path | None = None) -> pd.DataFrame:
 
     n_nan_after = series_hourly.isna().sum()
     print(f"  NaN values after interpolation (gaps > {max_gap}h remain): {n_nan_after}")
+
+    # Drop leading/trailing NaN rows (e.g. MT_001 has no data for all of 2011)
+    first_valid = series_hourly.first_valid_index()
+    last_valid = series_hourly.index[series_hourly.notna()][-1]
+    if first_valid is not None:
+        n_before = len(series_hourly)
+        series_hourly = series_hourly.loc[first_valid:last_valid]
+        n_dropped = n_before - len(series_hourly)
+        if n_dropped > 0:
+            print(f"  Dropped {n_dropped} leading/trailing NaN rows")
+            print(f"  Usable range: {first_valid} to {last_valid}")
 
     df_out = series_hourly.to_frame()
 
