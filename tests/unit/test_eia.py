@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 import pandas as pd
@@ -82,6 +83,21 @@ def test_errors_never_leak_the_key(cfg):
             key=KEY,
         )
     assert KEY not in str(err.value) and "api_key=***" in str(err.value)
+
+
+def test_urllib3_retry_warnings_never_leak_the_key(caplog):
+    pytest.importorskip("requests")
+    eia._session()
+    caplog.set_level(logging.WARNING, logger="urllib3")
+    # The message urllib3.connectionpool logs before retrying a broken connection.
+    logging.getLogger("urllib3.connectionpool").warning(
+        "Retrying (%r) after connection broken by '%r': %s",
+        "Retry(total=4, connect=None, read=None, redirect=None, status=None)",
+        "ReadTimeoutError(\"HTTPSConnectionPool(host='api.eia.gov', port=443)\")",
+        f"/v2/electricity/rto/region-data/data/?frequency=hourly&api_key={KEY}&offset=0",
+    )
+    assert "Retrying" in caplog.text
+    assert KEY not in caplog.text and "api_key=***" in caplog.text
 
 
 def test_missing_key_is_a_clear_error(monkeypatch, tmp_path):

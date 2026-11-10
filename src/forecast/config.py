@@ -42,10 +42,6 @@ def experiments_dir() -> Path:
     return Path(os.environ.get("FORECAST_EXPERIMENTS_DIR", project_root() / "experiments"))
 
 
-def artifacts_dir() -> Path:
-    return Path(os.environ.get("FORECAST_ARTIFACTS_DIR", project_root() / "artifacts")).resolve()
-
-
 # --------------------------------------------------------------------------- schema
 
 

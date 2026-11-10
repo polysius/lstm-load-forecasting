@@ -15,42 +15,26 @@ PARITY_ATOL = 1e-4  # in standardised units; observed differences are ~1e-7
 
 
 def export_onnx(net: torch.nn.Module, path: Path, input_window: int, n_features: int) -> str:
-    """Export with the dynamo exporter (dynamic batch), falling back to TorchScript."""
+    """Export with the dynamo exporter (dynamic batch)."""
     net = net.eval()
     # torch.export specialises size-1 dims, so trace with batch 2 to keep batch dynamic.
     dummy = torch.zeros(2, input_window, n_features)
     path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            batch = torch.export.Dim("batch", min=1, max=65536)
-            torch.onnx.export(
-                net,
-                (dummy,),
-                str(path),
-                input_names=["x"],
-                output_names=["y"],
-                dynamic_shapes={"x": {0: batch}},
-                dynamo=True,
-                external_data=False,  # one self-contained file; the model is tiny
-                verbose=False,
-            )
-        return "dynamo"
-    except Exception as exc:  # pragma: no cover - depends on the torch build
-        log.warning("dynamo export failed (%s); falling back to TorchScript exporter", exc)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            torch.onnx.export(
-                net,
-                (dummy,),
-                str(path),
-                input_names=["x"],
-                output_names=["y"],
-                dynamic_axes={"x": {0: "batch"}, "y": {0: "batch"}},
-                dynamo=False,
-                opset_version=17,
-            )
-        return "torchscript"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        batch = torch.export.Dim("batch", min=1, max=65536)
+        torch.onnx.export(
+            net,
+            (dummy,),
+            str(path),
+            input_names=["x"],
+            output_names=["y"],
+            dynamic_shapes={"x": {0: batch}},
+            dynamo=True,
+            external_data=False,  # one self-contained file; the model is tiny
+            verbose=False,
+        )
+    return "dynamo"
 
 
 def parity_max_abs_diff(

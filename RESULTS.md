@@ -135,5 +135,28 @@ version's tags (`promotion.decision`, `promotion.reasons`, `promotion.compared_t
 - HTTP round trip through the container (`POST /forecast`, 168 h in, 24 h out with
   intervals, 500 sequential requests on the Snapdragon X Plus, measured while a
   benchmark was saturating the CPU): **p50 3.2 ms, p95 6.5 ms**.
-- The PyTorch vs ONNX Runtime CPU latency table (`make latency`) lands with the next
-  PR. It is being re-measured on an idle machine.
+- PyTorch vs ONNX Runtime CPU latency (`make latency`, raw numbers in
+  `experiments/results/latency.csv`). Measured on an idle Snapdragon X Plus (8 cores,
+  WSL2 Ubuntu 24.04 aarch64, torch 2.15.0+cpu, onnxruntime 1.31.1) with the
+  production architecture (32-unit LSTM, 168x1 input, 24 outputs); 1000 timed runs
+  after 100 warm-up runs.
+
+| Runtime | Threads | Batch | p50 (ms) | p95 (ms) | p50 per sequence (ms) |
+|---|---|---|---|---|---|
+| PyTorch eager, no_grad | 1 | 1 | 1.154 | 1.836 | 1.154 |
+| PyTorch eager, no_grad | 8 (default) | 1 | 15.04 | 74.73 | 15.04 |
+| PyTorch inference_mode | 1 | 1 | 1.158 | 1.896 | 1.158 |
+| ONNX Runtime | 1 | 1 | **0.077** | **0.094** | 0.077 |
+| ONNX Runtime | 8 | 1 | 0.078 | 0.096 | 0.078 |
+| Serving path end to end (scaling + calendar + ORT + intervals) | 1 | 1 | 0.109 | 0.231 | 0.109 |
+| PyTorch eager, no_grad | 1 | 64 | 21.35 | 24.96 | 0.334 |
+| PyTorch eager, no_grad | 8 (default) | 64 | 65.13 | 173.19 | 1.018 |
+| ONNX Runtime | 1 | 64 | **2.649** | **3.515** | 0.041 |
+| ONNX Runtime | 8 | 64 | 2.003 | 8.091 | 0.031 |
+
+ONNX Runtime is about 15x faster than single-threaded PyTorch at batch 1 (0.077 vs
+1.15 ms p50) and about 8x faster at batch 64. PyTorch's default 8 intra-op threads
+make this small model slower (15 ms p50 and 75 ms p95 at batch 1, where thread
+synchronisation dominates), which is why the serving Predictor honours an
+`ORT_THREADS` setting (the Lambda deployment in the next PR sets it to 1). The full
+serving path adds about 30 microseconds on top of the ONNX call.

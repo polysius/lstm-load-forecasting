@@ -74,7 +74,10 @@ def train_production(
     else:
         snap = None
     if until is not None:
-        series = series[series.index < pd.Timestamp(until)]
+        cutoff = pd.Timestamp(until)
+        if cutoff.tz is None:
+            cutoff = cutoff.tz_localize(series.index.tz)
+        series = series[series.index < cutoff]
 
     values = series.to_numpy(dtype=np.float64)
     index = pd.DatetimeIndex(series.index)

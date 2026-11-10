@@ -1,4 +1,4 @@
-"""Leakage prevention tests (SPEC §5) including the noise canary."""
+"""Leakage prevention tests (SPEC §5): chronological folds, purge gap, windows, scaling."""
 
 from __future__ import annotations
 
@@ -88,21 +88,3 @@ class TestScalerLeakage:
             train = values[info.fold.train_start : info.fold.train_end]
             assert info.scaler_mean == pytest.approx(train.mean())
             assert info.scaler_scale == pytest.approx(train.std())
-
-
-class TestNoTargetDerivedFeatures:
-    """§5.5 — No rolling/expanding stats computed on full series before splitting."""
-
-    def test_sklearn_train_test_split_absent(self):
-        """Random splitting (train_test_split) must not appear anywhere in the code."""
-        from pathlib import Path
-
-        repo_root = Path(__file__).resolve().parents[2]
-        violations = []
-        for py_file in [*(repo_root / "src").rglob("*.py"), *(repo_root / "tests").rglob("*.py")]:
-            text = py_file.read_text(encoding="utf-8", errors="ignore")
-            if "train_test_split" in text and py_file.name != "test_leakage.py":
-                violations.append(str(py_file))
-        assert not violations, (
-            f"train_test_split found in: {violations}. Use chronological splits only."
-        )

@@ -1,8 +1,8 @@
 """EIA API v2 client for EIA-930 hourly balancing-authority demand.
 
-The API key travels as a query parameter, so every error message and log line is
-redacted before it can leave this module; urllib3's request logging (which would
-print the full URL) is kept at WARNING by the CLI.
+The API key travels as a query parameter, so every error message is redacted before
+it can leave this module, and the session redacts urllib3's log records, whose
+retry warnings and request lines carry the full URL.
 """
 
 from __future__ import annotations
@@ -35,6 +35,18 @@ def redact(text: str) -> str:
     return _KEY_RE.sub(r"\1***", text)
 
 
+class _RedactFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = redact(record.getMessage())
+        record.args = None
+        return True
+
+
+_REDACT_FILTER = _RedactFilter()
+# Filters on a logger do not apply to records from its children, so name each one.
+_URLLIB3_LOGGERS = ("urllib3.connectionpool", "urllib3.util.retry")
+
+
 def api_key() -> str:
     try:
         from dotenv import load_dotenv
@@ -65,6 +77,10 @@ def _session():
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
 
+    for name in _URLLIB3_LOGGERS:
+        logger = logging.getLogger(name)
+        if _REDACT_FILTER not in logger.filters:
+            logger.addFilter(_REDACT_FILTER)
     retry = Retry(
         total=5,
         backoff_factor=1.5,

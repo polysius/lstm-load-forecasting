@@ -31,6 +31,8 @@ log = logging.getLogger(__name__)
 
 PRODUCTION_ALIAS = "production"
 PREVIOUS_ALIAS = "previous"
+# Error codes MLflow stores raise when a model has no version under an alias.
+_ALIAS_NOT_FOUND = frozenset({"RESOURCE_DOES_NOT_EXIST", "INVALID_PARAMETER_VALUE"})
 
 
 @dataclass
@@ -131,6 +133,7 @@ def promote(
     series: pd.Series | None = None,
 ) -> Decision:
     import mlflow
+    from mlflow.exceptions import MlflowException
 
     from forecast.train.tracking import Tracker
 
@@ -153,8 +156,9 @@ def promote(
     prod = None
     try:
         prod = client.get_model_version_by_alias(model_name, PRODUCTION_ALIAS)
-    except Exception:  # MlflowException: alias not set yet
-        prod = None
+    except MlflowException as exc:
+        if exc.error_code not in _ALIAS_NOT_FOUND:
+            raise
     if prod is not None and str(prod.version) == str(version):
         raise ValueError(f"version {version} is already {PRODUCTION_ALIAS}")
 
