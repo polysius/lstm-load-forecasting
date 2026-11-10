@@ -2,6 +2,8 @@
 
 Latency does not depend on the weights, so the benchmark uses the production
 architecture (from a bundle's model card when given, else the LSTM config).
+PyTorch and ONNX Runtime are each timed single-threaded and at their default
+thread count; the serving path is timed single-threaded, as Lambda runs it.
 """
 
 from __future__ import annotations
@@ -29,9 +31,10 @@ def _time(fn: Callable[[], object], runs: int, warmup: int) -> np.ndarray:
     return out
 
 
-def _row(label: str, batch: int, ms: np.ndarray) -> dict:
+def _row(label: str, threads: int, batch: int, ms: np.ndarray) -> dict:
     return {
         "method": label,
+        "threads": threads,
         "batch": batch,
         "p50_ms": float(np.percentile(ms, 50)),
         "p95_ms": float(np.percentile(ms, 95)),
@@ -49,7 +52,6 @@ def benchmark(
     runs: int = 1000,
     warmup: int = 100,
     batches: tuple[int, ...] = (1, 64),
-    torch_threads: int | None = None,
 ) -> pd.DataFrame:
     import onnxruntime as ort
     import torch
@@ -59,8 +61,11 @@ def benchmark(
     from forecast.serve.predictor import Predictor
     from forecast.train.export import export_with_parity
 
-    if torch_threads:
-        torch.set_num_threads(torch_threads)
+    default_torch_threads = torch.get_num_threads()
+    torch_thread_counts = sorted({1, default_torch_threads})
+    # ORT's default (intra_op_num_threads = 0) uses one thread per core.
+    ort_thread_counts = sorted({1, os.cpu_count() or 1})
+
     torch.manual_seed(0)
     net = LSTMNet(1, hidden_size, num_layers, 0.0, max_horizon).eval()
     rows = []
@@ -68,36 +73,13 @@ def benchmark(
         onnx_path = Path(tmp) / "model.onnx"
         export_with_parity(net, onnx_path, input_window, 1)
         sessions = {}
-        for threads in (1, 0):  # 0 = ORT default (all cores)
+        for threads in ort_thread_counts:
             opts = ort.SessionOptions()
-            opts.intra_op_num_threads = threads
+            opts.intra_op_num_threads = 1 if threads == 1 else 0
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             sessions[threads] = ort.InferenceSession(
                 str(onnx_path), sess_options=opts, providers=["CPUExecutionProvider"]
             )
-        for batch in batches:
-            x = torch.randn(batch, input_window, 1)
-            xn = x.numpy()
-
-            def eager(x=x):
-                with torch.no_grad():
-                    net(x)
-
-            def inference_mode(x=x):
-                with torch.inference_mode():
-                    net(x)
-
-            rows.append(_row("pytorch_eager_no_grad", batch, _time(eager, runs, warmup)))
-            rows.append(_row("pytorch_inference_mode", batch, _time(inference_mode, runs, warmup)))
-            for threads, sess in sessions.items():
-                label = "onnxruntime_1_thread" if threads == 1 else "onnxruntime_default_threads"
-                rows.append(
-                    _row(
-                        label,
-                        batch,
-                        _time(lambda s=sess, x=xn: s.run(None, {"x": x}), runs, warmup),
-                    )
-                )
 
         card = ModelCard(
             model_name="latency",
@@ -112,13 +94,35 @@ def benchmark(
         predictor = Predictor.from_dir(tmp, threads=1)
         history = np.random.default_rng(0).normal(1000, 50, input_window)
         last = datetime(2026, 1, 1, tzinfo=UTC)
-        rows.append(
-            _row(
-                "serving_predictor_end_to_end",
-                1,
-                _time(lambda: predictor.predict(history, last, max_horizon), runs, warmup),
-            )
-        )
+
+        try:
+            for batch in batches:
+                x = torch.randn(batch, input_window, 1)
+                xn = x.numpy()
+
+                def eager(x=x):
+                    with torch.no_grad():
+                        net(x)
+
+                def inference_mode(x=x):
+                    with torch.inference_mode():
+                        net(x)
+
+                for label, fn in (
+                    ("pytorch_eager_no_grad", eager),
+                    ("pytorch_inference_mode", inference_mode),
+                ):
+                    for threads in torch_thread_counts:
+                        torch.set_num_threads(threads)
+                        rows.append(_row(label, threads, batch, _time(fn, runs, warmup)))
+                for threads, sess in sessions.items():
+                    ms = _time(lambda s=sess, x=xn: s.run(None, {"x": x}), runs, warmup)
+                    rows.append(_row("onnxruntime", threads, batch, ms))
+                if batch == 1:
+                    ms = _time(lambda: predictor.predict(history, last, max_horizon), runs, warmup)
+                    rows.append(_row("serving_predictor_end_to_end", 1, 1, ms))
+        finally:
+            torch.set_num_threads(default_torch_threads)
 
     df = pd.DataFrame(rows)
     df["cpu"] = platform.processor() or platform.machine()
@@ -130,12 +134,12 @@ def benchmark(
 
 def to_markdown(df: pd.DataFrame) -> str:
     lines = [
-        "| Method | Batch | p50 (ms) | p95 (ms) | p50 per sequence (ms) |",
-        "|---|---|---|---|---|",
+        "| Method | Threads | Batch | p50 (ms) | p95 (ms) | p50 per sequence (ms) |",
+        "|---|---|---|---|---|---|",
     ]
     for r in df.itertuples():
         lines.append(
-            f"| {r.method} | {r.batch} | {r.p50_ms:.3f} | {r.p95_ms:.3f} | "
+            f"| {r.method} | {r.threads} | {r.batch} | {r.p50_ms:.3f} | {r.p95_ms:.3f} | "
             f"{r.per_sequence_p50_ms:.4f} |"
         )
     return "\n".join(lines)

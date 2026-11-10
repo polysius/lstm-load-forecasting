@@ -169,7 +169,7 @@ def cmd_bench_latency(args: argparse.Namespace) -> int:
             "input_window": card.input_window,
             "max_horizon": card.max_horizon,
         }
-    df = benchmark(runs=args.runs, warmup=args.warmup, torch_threads=args.torch_threads, **kwargs)
+    df = benchmark(runs=args.runs, warmup=args.warmup, **kwargs)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out, index=False)
@@ -244,7 +244,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--bundle", help="take the architecture from this bundle's card")
     p.add_argument("--runs", type=int, default=1000)
     p.add_argument("--warmup", type=int, default=100)
-    p.add_argument("--torch-threads", type=int)
     p.add_argument("--out", default="experiments/results/latency.csv")
     p.set_defaults(func=cmd_bench_latency)
 
