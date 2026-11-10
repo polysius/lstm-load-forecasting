@@ -1,0 +1,6 @@
+# SARIMAX(1,1,1)(1,1,1,24) as in the original study.
+order: [1, 1, 1]
+seasonal_order: [1, 1, 1, 24]
+max_train_periods: 30   # fit on the last 30 days (720 h) of the training fold
+apply_periods: 2        # condition on the last 2 days of each input window
+maxiter: 50

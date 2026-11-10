@@ -1,0 +1,10 @@
+# Allowlist: only what the images need reaches the build context.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/**
+!configs/**
+!artifacts/model/**
+**/__pycache__
+**/*.pyc

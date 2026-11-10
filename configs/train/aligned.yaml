@@ -1,0 +1,21 @@
+name: aligned
+description: >
+  Every model on the same 5 rolling-origin folds (the LSTM over 3 seeds), so the
+  numbers are directly comparable. The GBM appears twice: `gbm_legacy` with the
+  original features and `gbm` with the train/serve calendar skew and lag
+  misalignment fixed. This is the comparison to quote.
+data: uci
+runs:
+  - name: all_models
+    n_folds: 5
+    models:
+      - model: naive
+      - model: seasonal_naive
+      - model: sarima
+      - model: gbm
+        label: gbm_legacy
+        params: {feature_alignment: legacy}
+      - model: gbm
+        params: {feature_alignment: target}
+      - model: lstm
+        seeds: [42, 123, 456]

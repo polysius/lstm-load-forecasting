@@ -1,0 +1,1 @@
+seasonal_period: 24   # y_hat(t+h) = y(t+h-24): repeat yesterday's profile

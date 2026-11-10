@@ -1,0 +1,25 @@
+# EIA-930 hourly demand for one balancing authority: the production series.
+# Values are MWh per hour (i.e. average MW); EIA labels each hour by its END (UTC).
+name: eia_pjm
+source: eia
+target_col: load_mw
+units: MW
+eia:
+  base_url: https://api.eia.gov/v2/electricity/rto/region-data/data/
+  respondent: PJM
+  series_type: D          # D = demand
+  history_days: 730       # two years for training
+  page_size: 5000         # API maximum rows per request
+preprocessing:
+  resample_freq: 1h
+  timezone: UTC
+  interpolate_method: linear
+  interpolate_max_gap_hours: 3
+  zero_is_missing: true          # EIA-930 reports 0 for some missing hours
+  outlier_mad_threshold: 10.0    # mask gross reporting spikes
+task:
+  input_window: 168
+  forecast_horizons: [1, 6, 24]
+seasonal:
+  primary_period: 24
+  secondary_period: 168
