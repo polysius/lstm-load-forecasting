@@ -29,6 +29,10 @@ Full tables and the evidence behind every claim: **[RESULTS.md](RESULTS.md)**.
 - **Three methodology fixes** in an apples-to-apples `aligned` benchmark: one fold
   scheme for every model; a GBM train/serve calendar skew fixed (it served every
   forecast as "hour 0"); LSTM/SARIMA no longer averaged across different folds.
+- **Under one protocol the LSTM does not earn its complexity.** It is worse than
+  seasonal naive at every horizon (it is competitive only on folds with plenty of
+  data and a stable regime). The original "LSTM beats seasonal naive" verdict came
+  from mixed configurations and fold schemes.
 - **Leakage canaries with a positive control**: a shuffled future-target covariate
   must not help, while the unshuffled one must be detected as a leak.
 
@@ -41,7 +45,7 @@ Aligned benchmark, mean MASE over the same 5 rolling-origin folds:
 | SARIMA | 0.697 | 0.887 | 1.116 |
 | GBM, original features | 0.589 | 0.866 | 1.238 |
 | GBM, fixed features | 0.561 | 0.732 | 0.979 |
-| LSTM (3 seeds) | *next PR* | | |
+| LSTM (3 seeds) | 1.028 | 1.086 | 1.190 |
 
 ## Quickstart
 

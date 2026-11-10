@@ -84,7 +84,7 @@ Mean MASE over the same 5 folds (lower is better; < 1 beats seasonal naive):
 | SARIMA(1,1,1)(1,1,1,24) | 0.697 | 0.887 | 1.116 |
 | GBM, original features (`gbm_legacy`) | 0.589 | 0.866 | 1.238 |
 | GBM, fixed features (`gbm`) | 0.561 | 0.732 | 0.979 |
-| LSTM, 3 seeds | *running; lands with the next PR* | | |
+| LSTM, 3 seeds (committed CPU config) | 1.028 | 1.086 | 1.190 |
 
 Full per-fold table: [`experiments/results/aligned/SUMMARY.md`](experiments/results/aligned/SUMMARY.md).
 
@@ -95,6 +95,25 @@ Full per-fold table: [`experiments/results/aligned/SUMMARY.md`](experiments/resu
   and it now rests on comparable numbers.
 - The fold-to-fold spread is large (std 0.24-0.79). Fold 2 is a hard regime for
   every model, so single-split comparisons of these models would be unreliable.
+
+**The LSTM does not earn its complexity.** Scored like every other model (same 5
+folds, 3 seeds, seed spread ±0.08), it is worse than seasonal naive at every
+horizon. The original README's verdict ("beats seasonal naive overall by a
+razor-thin margin") came from mixing configurations and fold schemes (section 1).
+Per fold, 3-seed mean MASE h=1 / h=24, against the best baseline:
+
+| Fold (training hours) | LSTM h=1 | LSTM h=24 | naive h=1 | seasonal naive h=24 |
+|---|---|---|---|---|
+| 0 (2,016) | 1.854 | 1.809 | **0.317** | **0.324** |
+| 1 (6,835) | 0.328 | 0.387 | **0.261** | **0.322** |
+| 2 (11,654) | 1.716 | 2.082 | **0.876** | **1.477** |
+| 3 (16,473) | 0.534 | **0.826** | **0.419** | 0.884 |
+| 4 (21,292) | 0.709 | 0.846 | **0.491** | **0.705** |
+
+The LSTM is competitive only where training data is plentiful and the regime is
+stable (folds 1, 3, 4). It beats seasonal naive at h=24 only on fold 3. Fold 0
+is the early-stopping failure described in section 1. Fold 2 is a regime change
+that hurts every model and the LSTM most.
 
 ## 3. Leakage canaries (M1)
 
