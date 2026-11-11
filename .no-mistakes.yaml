@@ -1,20 +1,14 @@
 # no-mistakes gate configuration (trusted copy is read from master).
 # The gate daemon runs on native Windows on ARM64, where the training stack cannot
 # install, so every command runs inside WSL2 (Ubuntu) against the run worktree.
-# No --cd flag: the gate does not expand %CD% (wsl.exe fails with E_INVALIDARG), and
-# wsl.exe already starts in the current Windows directory.
+# The commands live in scripts/gate/ because quoted `bash -lc "..."` arguments broke
+# when the gate ran them (the shell appears to rewrite a leading VAR=/path), and the
+# gate does not expand %CD%. wsl.exe already starts in the current Windows directory.
 
 commands:
-  prepare: >-
-    wsl.exe -d Ubuntu -e bash -lc
-    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv sync --all-extras --frozen -q"
-  test: >-
-    wsl.exe -d Ubuntu -e bash -lc
-    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync pytest -m 'not slow and not integration' -q"
-  lint: >-
-    wsl.exe -d Ubuntu -e bash -lc
-    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync ruff check src tests &&
-    UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync ruff format --check src tests"
+  prepare: wsl.exe -d Ubuntu -e bash -l scripts/gate/prepare.sh
+  test: wsl.exe -d Ubuntu -e bash -l scripts/gate/test.sh
+  lint: wsl.exe -d Ubuntu -e bash -l scripts/gate/lint.sh
 
 test:
   instructions: |
