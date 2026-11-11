@@ -1,0 +1,9 @@
+# Force LF in the working tree so the Makefile, shell scripts and Dockerfiles
+# behave the same on Windows (incl. WSL), Linux CI and the Lambda build.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.onnx binary
+*.parquet binary
+*.zip binary

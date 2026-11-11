@@ -1,0 +1,22 @@
+# UCI ElectricityLoadDiagrams20112014, one client, hourly: the research benchmark.
+name: uci_mt001
+source: uci
+target_col: load_kw
+units: kW
+uci:
+  source_url: https://archive.ics.uci.edu/static/public/321/electricityloaddiagrams20112014.zip
+  raw_filename: LD2011_2014.txt
+  target_client: MT_001
+preprocessing:
+  resample_freq: 1h
+  timezone: Europe/Lisbon
+  interpolate_method: linear
+  interpolate_max_gap_hours: 3   # longer gaps stay NaN
+  zero_is_missing: true          # zero readings mean the meter was off
+  outlier_mad_threshold: null    # the original study reports outliers but keeps them
+task:
+  input_window: 168              # one week of hourly history
+  forecast_horizons: [1, 6, 24]
+seasonal:
+  primary_period: 24
+  secondary_period: 168

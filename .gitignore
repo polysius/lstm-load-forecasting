@@ -2,29 +2,45 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-lstm_load_forecasting.egg-info/
 dist/
 build/
 .venv/
-.venv311/
+.venv*/
 venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
-# Data (raw files are large — download via script)
+# Secrets - never commit (EIA_API_KEY lives here)
+.env
+.env.*
+!.env.example
+
+# Data: raw downloads and versioned snapshots are rebuilt by `forecast data <name>`
 data/raw/
 data/processed/
 
-# IDE
+# Experiment tracking and generated artefacts
+mlruns/
+mlartifacts/
+artifacts/
+experiments/forecasts/
+var/
+
+# Terraform
+infra/terraform/**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# IDE / OS
 .vscode/
 .idea/
 *.swp
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Experiment artifacts (large)
-experiments/sweeps/*.pt
-experiments/sweeps/*.onnx
-
-# Keep committed results
-!experiments/results/*.csv
+infra/terraform/*.tfvars
+!infra/terraform/*.tfvars.example

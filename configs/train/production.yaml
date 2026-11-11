@@ -1,0 +1,19 @@
+# The deployable model: LSTM on EIA-930 PJM demand.
+model_name: load-forecaster-pjm
+data: eia
+experiment: production-pjm
+seed: 42
+lstm:
+  min_epochs: 5          # guard against the stop-after-epoch-1 failure seen on small folds
+covariates: []           # e.g. [hour_sin, hour_cos, dow_sin, dow_cos]
+holdout_hours: 336       # last 14 days: promotion and reported metrics, never fitted
+calibration_hours: 336   # 14 days before that: split-conformal interval widths
+train_window_hours: null # null = all history before calibration
+interval_levels: [0.8, 0.95]
+default_level: 0.8
+eval_stride: 1
+scale_reference_hours: 672   # MASE denominator: seasonal naive over 4 weeks pre-holdout
+promotion:
+  metric: mase_mean
+  min_improvement: 0.0
+  must_beat_baseline: seasonal_naive

@@ -1,0 +1,55 @@
+name: reference
+description: >
+  Reproduces the original study exactly as its committed CSVs were produced:
+  naive / seasonal-naive / SARIMA / GBM on 5 folds, a separate 3-fold SARIMA run,
+  and the 3-seed LSTM on 3 folds. It exists to prove the refactor is faithful;
+  quote the `aligned` benchmark instead, which puts every model on the same folds.
+data: uci
+runs:
+  - name: baseline_results
+    n_folds: 5
+    models:
+      - model: naive
+      - model: seasonal_naive
+      - model: sarima
+      - model: gbm
+        params: {feature_alignment: legacy}
+    references:
+      - path: experiments/reference/baseline_results.csv
+        label: baseline_results.csv (published, efed2b8)
+        known_differences:
+          gbm: >-
+            efed2b8 replaced the GBM rows without changing gbm.py; the committed code
+            reproduces the first published rows (7f12081) exactly, not these.
+          sarima: >-
+            5-fold rows first appear in efed2b8; neither committed SARIMA version
+            (30-day or 60-day training window) reproduces them.
+      - path: experiments/reference/baseline_results@7f12081.csv
+        label: baseline_results.csv (first published, 7f12081)
+  - name: sarima_results
+    n_folds: 3
+    models:
+      - model: sarima
+    references:
+      - path: experiments/reference/sarima_results.csv
+  - name: lstm_results
+    n_folds: 3
+    models:
+      - model: lstm
+        seeds: [42, 123, 456]
+    references:
+      - path: experiments/reference/lstm_results.csv
+        known_differences:
+          lstm: >-
+            seed 42 was committed (f4ec735) while run_lstm.py still used the large
+            config (hidden 128 x 2 layers); seeds 123/456 were added later. Running the
+            original code from history on identical data reproduces neither: the
+            committed CPU config stops after epoch 1 on fold 0 for every seed.
+# Allowed relative difference in mean MASE per (model, horizon). Deterministic
+# models must match exactly; LSTM/GBM depend on library and BLAS versions.
+tolerances:
+  naive: 1.0e-9
+  seasonal_naive: 1.0e-9
+  sarima: 1.0e-6
+  gbm: 0.02
+  lstm: 0.05

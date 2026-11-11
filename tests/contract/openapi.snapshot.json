@@ -1,0 +1,511 @@
+{
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationIssue"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ForecastPoint": {
+        "properties": {
+          "lower": {
+            "title": "Lower",
+            "type": "number"
+          },
+          "point": {
+            "title": "Point",
+            "type": "number"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "upper": {
+            "title": "Upper",
+            "type": "number"
+          }
+        },
+        "required": [
+          "timestamp",
+          "step",
+          "point",
+          "lower",
+          "upper"
+        ],
+        "title": "ForecastPoint",
+        "type": "object"
+      },
+      "ForecastRequest": {
+        "additionalProperties": false,
+        "examples": [
+          {
+            "history": [
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0,
+              90000.0,
+              90652.2,
+              91304.3,
+              91956.5,
+              92608.7,
+              93260.9,
+              93913.0,
+              94565.2,
+              95217.4,
+              95869.6,
+              96521.7,
+              97173.9,
+              97826.1,
+              98478.3,
+              99130.4,
+              99782.6,
+              100434.8,
+              101087.0,
+              101739.1,
+              102391.3,
+              103043.5,
+              103695.7,
+              104347.8,
+              105000.0
+            ],
+            "horizon": 24,
+            "last_timestamp": "2026-11-09T23:00:00Z",
+            "level": "0.8",
+            "series_id": "PJM"
+          }
+        ],
+        "properties": {
+          "history": {
+            "description": "Hourly load, oldest first; the model uses the last `input_window` values.",
+            "items": {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            "maxItems": 8760,
+            "minItems": 1,
+            "title": "History",
+            "type": "array"
+          },
+          "horizon": {
+            "default": 24,
+            "description": "Hours ahead to forecast.",
+            "maximum": 168.0,
+            "minimum": 1.0,
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "last_timestamp": {
+            "description": "Timestamp (timezone-aware) of the last history value.",
+            "format": "date-time",
+            "title": "Last Timestamp",
+            "type": "string"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Interval coverage level, e.g. '0.8'; defaults to the model's default.",
+            "title": "Level"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-form series label, echoed back and logged.",
+            "title": "Series Id"
+          }
+        },
+        "required": [
+          "history",
+          "last_timestamp"
+        ],
+        "title": "ForecastRequest",
+        "type": "object"
+      },
+      "ForecastResponse": {
+        "properties": {
+          "forecasts": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "title": "Forecasts",
+            "type": "array"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "origin": {
+            "format": "date-time",
+            "title": "Origin",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series Id"
+          },
+          "units": {
+            "title": "Units",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "model_name",
+          "model_version",
+          "series_id",
+          "origin",
+          "level",
+          "units",
+          "forecasts"
+        ],
+        "title": "ForecastResponse",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "input_window": {
+            "title": "Input Window",
+            "type": "integer"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Levels",
+            "type": "array"
+          },
+          "max_horizon": {
+            "title": "Max Horizon",
+            "type": "integer"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "uptime_seconds": {
+            "title": "Uptime Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "model_name",
+          "model_version",
+          "input_window",
+          "max_horizon",
+          "levels",
+          "uptime_seconds"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "ValidationIssue": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Loc",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Msg",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationIssue",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "summary": "Hourly electricity load forecasts with split-conformal prediction intervals.",
+    "title": "Load Forecasting API"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/forecast": {
+      "post": {
+        "operationId": "forecast_forecast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForecastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Forecast",
+        "tags": [
+          "forecast"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "ops"
+        ]
+      }
+    }
+  }
+}

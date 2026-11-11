@@ -1,0 +1,13 @@
+# CPU-viable configuration used for every published LSTM result.
+# (The original config/lstm.yaml listed hidden=128 x 2 layers, but scripts/run_lstm.py
+#  overrode it with these values; this file now states what was actually run.)
+hidden_size: 32
+num_layers: 1
+dropout: 0.0
+learning_rate: 0.001
+batch_size: 256
+max_epochs: 30
+patience: 5
+gradient_clip_norm: 1.0
+loss: huber        # robust to load spikes
+val_fraction: 0.2  # chronological tail of the training windows, for early stopping

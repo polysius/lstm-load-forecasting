@@ -1,0 +1,31 @@
+# no-mistakes gate configuration (trusted copy is read from master).
+# The gate daemon runs on native Windows on ARM64, where the training stack cannot
+# install, so every command runs inside WSL2 (Ubuntu) against the run worktree.
+
+commands:
+  prepare: >-
+    wsl.exe -d Ubuntu --cd "%CD%" -e bash -lc
+    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv sync --all-extras --frozen -q"
+  test: >-
+    wsl.exe -d Ubuntu --cd "%CD%" -e bash -lc
+    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync pytest -m 'not slow and not integration' -q"
+  lint: >-
+    wsl.exe -d Ubuntu --cd "%CD%" -e bash -lc
+    "UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync ruff check src tests &&
+    UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate uv run --no-sync ruff format --check src tests"
+
+test:
+  instructions: |
+    Run Python inside WSL2 Ubuntu, never natively (no pandas/pyarrow/lightgbm wheels on
+    Windows ARM64): `wsl.exe -d Ubuntu --cd <worktree> -e bash -lc "<cmd>"` with
+    UV_PROJECT_ENVIRONMENT=/root/.venvs/no-mistakes-gate after `uv sync --all-extras --frozen`.
+    Fast tests: `uv run --no-sync pytest -m "not slow and not integration" -q`.
+    The UCI benchmark (make train/evaluate) takes ~40 minutes and needs the 700 MB dataset;
+    do not run it in the gate. Remote CI runs the full suite incl. slow tests and the
+    container integration job.
+
+ignore_patterns:
+  - "uv.lock"
+  - "infra/terraform/.terraform.lock.hcl"
+  - "tests/contract/openapi.snapshot.json"
+  - "experiments/reference/**"

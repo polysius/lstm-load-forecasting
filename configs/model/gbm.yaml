@@ -1,0 +1,11 @@
+# One LightGBM regressor per step ahead. These are the values the published run used
+# (the GBMForecaster constructor defaults; config/baselines.yaml's 500/50 were never read).
+lag_features: [1, 2, 3, 6, 12, 24, 48, 168]
+n_estimators: 300
+learning_rate: 0.05
+num_leaves: 31
+early_stopping_rounds: 30
+val_fraction: 0.2
+# legacy: reproduces the original features, including a train/serve calendar skew and
+#         lags misaligned by (step - 1) hours. target: the corrected features.
+feature_alignment: legacy

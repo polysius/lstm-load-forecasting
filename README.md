@@ -1,109 +1,140 @@
-# LSTM Time-Series Forecasting — Electricity Load Prediction
+# Load forecasting service: LSTM vs baselines, from notebook study to MLOps system
 
-Multi-horizon electricity load forecasting with a leakage-audited pipeline, benchmarking a
-sequence-to-sequence LSTM against naive, seasonal-naive, SARIMA, and gradient-boosting baselines
-at 1-, 6-, and 24-step hourly horizons.
+Hourly electricity-load forecasting, grown from a leakage-audited research study
+into a system: a reproducible training package, MLflow experiment tracking with
+data-version hashes, a model registry guarded by a champion/challenger promotion
+gate, and an ONNX Runtime API with split-conformal prediction intervals that runs
+unchanged in Docker and on AWS Lambda.
 
-## Task definition
+The model is deliberately small (a 32-unit LSTM). The focus is the system around it.
 
-- **Dataset:** UCI ElectricityLoadDiagrams20112014 (single client, hourly)
-- **Input window:** 168 hours (one week)
-- **Forecast horizons:** h = 1, 6, 24 hours ahead
-- **Mode:** Direct multi-horizon — one model emits the full horizon vector
-
-## Quickstart
-
-```bash
-# Clone and install
-git clone <repo-url>
-cd lstm-load-forecasting
-python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e ".[dev]"
-
-# Download and preprocess data
-python data/download.py
-python data/preprocess.py
-
-# Validate data contract
-python data/validate.py
-
-# Run baselines (M3)
-# python scripts/run_baselines.py
-
-# Train LSTM (M4)
-# python scripts/run_lstm.py
-
-# Profile latency (M5)
-# python eval/profile_latency.py
-```
+| | |
+|---|---|
+| Benchmark data | UCI ElectricityLoadDiagrams20112014, client MT_001, hourly (2012-2014) |
+| Production data | EIA-930 hourly demand, PJM balancing authority (live feed, API v2) |
+| Task | direct multi-horizon: 168 h of history -> next 24 h; scored at h = 1, 6, 24 |
+| Headline metric | MASE vs in-sample 24 h seasonal naive (< 1 beats "same hour yesterday") |
+| Serving | FastAPI + ONNX Runtime (no torch in the image), 80% / 95% conformal intervals |
 
 ## Results
 
-| Model | Horizon | MAE | RMSE | MASE |
-|---|---|---|---|---|
-| naive | h=1 | 0.1833 | 0.4309 | **0.4727** |
-| lstm | h=1 | 0.2509 | 0.4498 | **0.6216** |
-| sarima | h=1 | 0.2441 | 0.4817 | **0.6389** |
-| seasonal_naive | h=1 | 0.2750 | 0.6219 | **0.7410** |
-| gbm | h=1 | 0.3923 | 0.6062 | **0.9939** |
-| naive | h=6 | 0.2501 | 0.5465 | **0.6442** |
-| lstm | h=6 | 0.3014 | 0.5061 | **0.7315** |
-| seasonal_naive | h=6 | 0.2750 | 0.6220 | **0.7410** |
-| sarima | h=6 | 0.3105 | 0.5952 | **0.8198** |
-| gbm | h=6 | 0.4293 | 0.6435 | 1.1031 |
-| seasonal_naive | h=24 | 0.2756 | 0.6229 | **0.7426** |
-| naive | h=24 | 0.3066 | 0.6124 | **0.8115** |
-| lstm | h=24 | 0.3484 | 0.5862 | **0.8549** |
-| sarima | h=24 | 0.3614 | 0.6959 | **0.9792** |
-| gbm | h=24 | 0.5252 | 0.7456 | 1.3606 |
+Full tables and the evidence behind every claim: **[RESULTS.md](RESULTS.md)**.
 
-*LSTM results are mean across 3 seeds (42, 123, 456). All models evaluated via 5-fold expanding-window cross-validation (SARIMA: 3 folds due to computational cost).*
+- **The refactor reproduces the original study bit-for-bit wherever the committed
+  code can**: 18 of 27 published (model, horizon) results match exactly, to 0.0000 on
+  every fold. The other 9 (later GBM rows, 5-fold SARIMA, and the LSTM) cannot be
+  produced by *any* committed code. Running the original code from git history
+  side by side gives the same numbers as the refactor, so the CSVs, not the
+  refactor, are the problem. The LSTM table mixed two architectures across seeds.
+- **Three methodology fixes** in an apples-to-apples `aligned` benchmark: one fold
+  scheme for every model; a GBM train/serve calendar skew fixed (it served every
+  forecast as "hour 0"); LSTM/SARIMA no longer averaged across different folds.
+- **Under one protocol the LSTM does not earn its complexity.** It is worse than
+  seasonal naive at every horizon (it is competitive only on folds with plenty of
+  data and a stable regime). The original "LSTM beats seasonal naive" verdict came
+  from mixed configurations and fold schemes.
+- **Leakage canaries with a positive control**: a shuffled future-target covariate
+  must not help, while the unshuffled one must be detected as a leak.
 
-## Did the LSTM earn its complexity?
+Aligned benchmark, mean MASE over the same 5 rolling-origin folds:
 
-- **h=1:** Best = naive (MASE 0.4727). LSTM (0.6216) beats seasonal naive (0.7410).
-- **h=6:** Best = naive (MASE 0.6442). LSTM (0.7315) beats seasonal naive (0.7410).
-- **h=24:** Best = seasonal_naive (MASE 0.7426). LSTM (0.8549) does not beat seasonal naive (0.7426).
+| Model | h=1 | h=6 | h=24 |
+|---|---|---|---|
+| naive (persistence) | **0.473** | **0.644** | 0.812 |
+| seasonal naive | 0.741 | 0.741 | **0.743** |
+| SARIMA | 0.697 | 0.887 | 1.116 |
+| GBM, original features | 0.589 | 0.866 | 1.238 |
+| GBM, fixed features | 0.561 | 0.732 | 0.979 |
+| LSTM (3 seeds) | 1.028 | 1.086 | 1.190 |
 
-The LSTM (mean MASE 0.7360) beats seasonal naive (0.7415) overall by a razor-thin margin, but naive persistence (0.6428) remains the strongest baseline at short horizons. The LSTM earns partial complexity at h=6 where it edges past seasonal naive, but its advantage is marginal and does not justify the computational cost for this single-client, calendar-features-only setup. GBM (MASE 1.15 mean) performs worst among all models, a well-known result for deep lag-based gradient boosting on smooth periodic time series.
+## Quickstart
 
-## Leakage prevention
+Linux, macOS or **WSL2** (native Windows on ARM64 cannot install LightGBM/pyarrow wheels).
 
-Five guards are enforced and tested in `tests/test_leakage.py`:
+```bash
+uv sync --all-extras          # Python 3.12, locked dependencies (uv.lock)
+make test                     # fast unit tests; `make test-all` adds the model-training canaries
 
-1. **Chronological splitting only** — no shuffling, ever
-2. **Scalers fit on training data only** — validation/test are transformed, never fit
-3. **Windows don't straddle split boundaries** — boundary windows are explicitly dropped
-4. **Purge gap between folds** — gap of L + max(h) = 192 timesteps between train and test
-5. **No target-derived features** — no rolling means or expanding stats computed before splitting
+# M1 - reproduce the original study (downloads the 700 MB UCI file once, ~35 min on 8 cores)
+make train && make evaluate   # benchmark `reference`; fails if any non-documented result differs
+make benchmark                # `aligned`: every model on the same 5 folds
 
-A noise-canary test trains on pure random data and asserts no model beats naive.
+# M2 - production model on live EIA data (needs EIA_API_KEY in .env, see .env.example)
+make data-eia train-production promote export-model
+make mlflow-ui                # runs, metrics, data-version tags and the registry at :5000
 
-## Latency
+# M3 - serve it
+make docker-build docker-run  # http://localhost:8080/docs
+make test-integration         # contract tests against the running container
+make latency                  # PyTorch vs ONNX Runtime CPU latency -> experiments/results/
+```
 
-| Method | p50 (ms) | p95 (ms) |
-|---|---|---|
-| baseline_cpu_single | 2.49 | 3.87 |
-| baseline_cpu_batch64 | 121.31 | 157.69 |
-| inference_mode_single | 2.51 | 3.67 |
-| jit_traced_single | 2.83 | 5.44 |
-| jit_traced_batch64 | 104.95 | 163.74 |
+```bash
+curl -s localhost:8080/forecast -H 'content-type: application/json' -d @- <<'EOF' | jq '.forecasts[0]'
+{"history": [ ...168 hourly values, oldest first... ], "last_timestamp": "2026-11-09T23:00:00Z", "horizon": 24}
+EOF
+```
 
-Single-sequence inference runs in ~2.5ms on CPU (Snapdragon X Plus). JIT tracing shows marginal batch improvement but no single-sequence gain on this small model. The model comfortably meets real-time constraints for hourly forecasting.
+## How it works
 
-## Where the model fails
+**Data versioning.** `forecast data <name>` writes immutable snapshots to
+`data/processed/<dataset>/<YYYY-MM-DDTHHMMSSZ>/` with a manifest. The manifest holds a
+SHA-256 of the canonical content (UTC nanosecond timestamps plus float64 values,
+stable across pandas/pyarrow versions). Every load re-verifies the hash, and every
+MLflow run logs the dated prefix and the hash.
 
-- **Short horizons (h=1):** Naive persistence dominates. Hourly load autocorrelation is so strong that "repeat last value" is hard to beat with any learned model. The LSTM's overhead buys nothing here.
-- **Day-ahead (h=24):** Seasonal naive outperforms the LSTM. Repeating yesterday's load profile is more reliable than the LSTM's learned dynamics, likely because the CPU-viable architecture (hidden=32, 1 layer) is undersized for capturing multi-scale patterns.
-- **GBM degradation:** The per-step-ahead GBM strategy degrades badly at longer horizons (MASE 1.36 at h=24), suggesting lag features alone cannot carry prediction without exogenous inputs.
-- **SARIMA scalability:** SARIMAX(1,1,1)(1,1,1,24) hits practical limits — fitting is slow enough to restrict evaluation to 3 folds.
+**Backtesting.** Rolling-origin expanding folds with a purge gap of input window +
+max horizon (192 h), scalers fit on each training fold only, and non-overlapping test
+windows per horizon. `forecast train` saves raw forecasts, and `forecast evaluate`
+scores them. Keeping the two apart means scoring can be audited or extended without
+refitting.
 
-![Model comparison](experiments/plots/model_comparison_mase.png)
+**Production training** (`configs/train/production.yaml`):
+
+```
+[ train .................................. | calibration 14 d | holdout 14 d ]
+  scaler + LSTM fit                          conformal widths    metrics, promotion
+```
+
+The fitted network is exported to ONNX (dynamo exporter) and must match PyTorch
+within 1e-4, or the run fails. Interval half-widths are split-conformal quantiles
+per step ahead. The bundle (`model.onnx` + `metadata.json` model card) is logged to
+MLflow and registered as a new version. The registered artefact is the one that was
+evaluated.
+
+**Promotion gate** (`forecast promote`): the candidate gets the `production` alias
+only if, on its own holdout, it beats seasonal naive **and** the current production
+version. Both bundles are scored by the same serving code on the same windows with a
+shared MASE denominator. The old champion keeps a `previous` alias for rollback.
+
+**Serving.** `src/forecast/serve/` depends on numpy, onnxruntime and FastAPI only.
+`POST /forecast` returns point forecasts with 80% / 95% intervals for 1-24 h and
+logs each prediction, inputs included, to a JSONL directory or S3 for monitoring.
+`GET /health` reports the loaded model version, and `GET /metrics` exposes
+Prometheus metrics. The request/response schema is pinned by an OpenAPI snapshot
+(`tests/contract/`), and CI checks live container responses against it.
+
+## Repository layout
+
+```
+src/forecast/
+  data/       UCI + EIA ingestion, cleaning, data contract, versioned snapshots
+  features/   supervised windows, calendar encodings (numpy-only twin for serving)
+  models/     naive, seasonal naive, SARIMA, LightGBM (legacy + fixed), LSTM
+  evaluate/   folds, backtest harness, metrics, reproduction report, holdout, latency
+  train/      benchmark runner, MLflow tracking, production pipeline, conformal, ONNX export, promotion
+  serve/      model bundle, ONNX predictor, FastAPI app, prediction log, metrics
+configs/      data / model / train YAML (pydantic-validated: typos fail loudly)
+tests/        unit (incl. leakage canaries), contract (OpenAPI), integration (container)
+docker/       Dockerfile.serve (also the Lambda image, via Lambda Web Adapter)
+experiments/  reference CSVs from the original study, reproduced + aligned results, plots
+```
 
 ## Limitations
 
-- Single client from the UCI dataset; results may not generalize across clients
-- No exogenous features (weather, price signals) — calendar features only
-- Single dataset; no cross-dataset validation
-- CPU-viable LSTM architecture (hidden=32, 1 layer) — larger models may perform better with GPU
-- No hyperparameter sweep performed (CPU-only constraint)
+- One UCI client and one balancing authority; no weather or price covariates. The
+  LSTM is intentionally CPU-sized and untuned.
+- Split-conformal coverage assumes exchangeable residuals, which hourly load is not.
+  Coverage is therefore measured on the holdout (and in production), not assumed.
+- Nine published numbers from the original study cannot be reproduced from any
+  committed code; they are kept as documented known differences, not silently replaced.

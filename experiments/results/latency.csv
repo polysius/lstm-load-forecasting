@@ -1,0 +1,14 @@
+method,threads,batch,p50_ms,p95_ms,mean_ms,per_sequence_p50_ms,cpu,cores,torch,onnxruntime
+pytorch_eager_no_grad,1,1,1.154,1.8362,1.2286,1.154,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_eager_no_grad,8,1,15.0378,74.7326,21.4988,15.0378,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_inference_mode,1,1,1.158,1.8963,1.2281,1.158,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_inference_mode,8,1,13.2911,58.0601,17.8752,13.2911,aarch64,8,2.15.0+cpu,1.31.1
+onnxruntime,1,1,0.0766,0.0943,0.0852,0.0766,aarch64,8,2.15.0+cpu,1.31.1
+onnxruntime,8,1,0.0777,0.0956,0.0854,0.0777,aarch64,8,2.15.0+cpu,1.31.1
+serving_predictor_end_to_end,1,1,0.1093,0.2308,0.1431,0.1093,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_eager_no_grad,1,64,21.3514,24.9623,21.8453,0.3336,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_eager_no_grad,8,64,65.1349,173.1939,74.6468,1.0177,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_inference_mode,1,64,21.1704,23.6078,21.4922,0.3308,aarch64,8,2.15.0+cpu,1.31.1
+pytorch_inference_mode,8,64,58.0872,162.601,68.6255,0.9076,aarch64,8,2.15.0+cpu,1.31.1
+onnxruntime,1,64,2.6485,3.5153,2.7864,0.0414,aarch64,8,2.15.0+cpu,1.31.1
+onnxruntime,8,64,2.0028,8.091,2.9386,0.0313,aarch64,8,2.15.0+cpu,1.31.1
