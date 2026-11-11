@@ -97,23 +97,24 @@ EOF
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     UCI[UCI benchmark] --> SNAP
     EIA[EIA-930 hourly demand] --> SNAP[Versioned data snapshots<br/>SHA-256 manifest]
-    SNAP --> TRAIN[Backtest and<br/>production training]
-    TRAIN --> MLF[(MLflow runs<br/>and registry)]
-    TRAIN --> BUNDLE[Conformal intervals<br/>and ONNX export]
+    SNAP --> TRAIN[Backtest and production training]
+    TRAIN --> MLF[(MLflow runs and registry)]
+    TRAIN --> BUNDLE[Conformal intervals and ONNX export]
     BUNDLE --> GATE{Promotion gate:<br/>beats seasonal naive<br/>and production?}
     GATE -- promoted --> SERVED[Model bundle]
     SERVED --> API[FastAPI and ONNX Runtime<br/>/forecast /health /metrics]
     TRAFFIC[forecast traffic:<br/>latest live EIA week] --> API
-    API --> LOG[Prediction log<br/>JSONL]
+    API --> LOG[Prediction log, JSONL]
+    API --> PROM[Prometheus]
     LOG --> MON[Monitor: PSI, KS,<br/>rolling MASE, coverage]
-    SNAP -- actuals --> MON
+    SNAP -. actuals .-> MON
     MON -- drift confirmed --> TRAIN
     MON --> PG[Pushgateway]
-    API --> PROM[Prometheus]
-    PG --> PROM --> GRAF[Grafana dashboard]
+    PG --> PROM
+    PROM --> GRAF[Grafana dashboard]
 ```
 
 Training and serving share one artefact: the registered bundle is exactly what the gate
