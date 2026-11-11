@@ -8,7 +8,7 @@ the MLflow store on this machine.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pandas as pd
@@ -48,7 +48,7 @@ def check_drift(
     model_dir: Path,
     report: Path | None = None,
 ) -> MonitorResult:
-    """Score drift and rolling error for the newest data and append the result to the history."""
+    """Score drift and rolling error for the newest data; ``result.retrain`` is only a recommendation."""
     actuals, _ = load_series(load_data_config(cfg.data), data_dir())
     card = read_card(model_dir)
     since = actuals.index[-1] - pd.Timedelta(hours=2 * cfg.window_hours)
@@ -61,8 +61,12 @@ def check_drift(
         history=read_history(history_path),
         html=report,
     )
-    append_history(history_path, result)
     return result
+
+
+def record_check(history_path: Path, result: MonitorResult, *, retrained: bool) -> None:
+    """Append a check to the history; its ``retrain`` flag says a retrain happened, not that one was advised."""
+    append_history(history_path, replace(result, retrain=retrained))
 
 
 def retrain_if_drifted(
@@ -79,6 +83,7 @@ def retrain_if_drifted(
         cfg, predictions=predictions, history_path=history_path, model_dir=model_dir, report=report
     )
     if not (result.retrain or force):
+        record_check(history_path, result, retrained=False)
         return RetrainOutcome(monitor=result, retrained=False)
 
     from forecast.train.production import train_production
@@ -87,6 +92,7 @@ def retrain_if_drifted(
 
     production = load_production_config(cfg.production)
     trained = train_production(production, tracker=Tracker.from_env())
+    record_check(history_path, result, retrained=True)
     decision = promote(production.model_name, rule=production.promotion)
     if decision.promote:
         export_bundle(production.model_name, model_dir, alias="production")

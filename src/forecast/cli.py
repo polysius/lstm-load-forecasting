@@ -183,16 +183,18 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     from pathlib import Path
 
     from forecast.config import load_monitor_config
-    from forecast.monitor.retrain import check_drift
+    from forecast.monitor.retrain import check_drift, record_check
 
     cfg = load_monitor_config(args.config)
+    history_path = Path(args.history)
     result = check_drift(
         cfg,
         predictions=Path(args.predictions),
-        history_path=Path(args.history),
+        history_path=history_path,
         model_dir=Path(args.model_dir),
         report=Path(args.report) if args.report else None,
     )
+    record_check(history_path, result, retrained=False)
     if args.pushgateway:
         from forecast.monitor.sinks import PushgatewaySink
 
