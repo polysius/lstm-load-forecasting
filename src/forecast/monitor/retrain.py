@@ -66,7 +66,10 @@ def check_drift(
 
 def record_check(history_path: Path, result: MonitorResult, *, retrained: bool) -> None:
     """Append a check to the history; its ``retrain`` flag says a retrain happened, not that one was advised."""
-    append_history(history_path, replace(result, retrain=retrained))
+    already_retrained = any(
+        h.get("retrain") and h["as_of"] == result.as_of for h in read_history(history_path)
+    )
+    append_history(history_path, replace(result, retrain=retrained or already_retrained))
 
 
 def retrain_if_drifted(

@@ -134,7 +134,9 @@ def decide_retrain(
     if not breach:
         return False, ["no breach"]
     previous = [h for h in history if pd.Timestamp(h["as_of"]) < as_of]
-    retrains = [pd.Timestamp(h["as_of"]) for h in previous if h.get("retrain")]
+    retrains = [
+        pd.Timestamp(h["as_of"]) for h in history if h.get("retrain") and pd.Timestamp(h["as_of"]) <= as_of
+    ]
     if model_version is not None:
         previous = [h for h in previous if str(h.get("model_version")) == str(model_version)]
     streak = 1
@@ -247,8 +249,12 @@ def read_history(path: Path) -> list[dict[str, Any]]:
 
 
 def append_history(path: Path, result: MonitorResult) -> None:
+    """Record a check; a repeat run on the same ``as_of`` replaces the earlier line."""
+    kept = [h for h in read_history(path) if h["as_of"] != result.as_of]
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
+        for h in kept:
+            f.write(json.dumps(h) + "\n")
         f.write(result.to_json() + "\n")
 
 

@@ -106,6 +106,34 @@ def test_monitor_check_does_not_start_the_retrain_cooldown(tmp_path):
     assert should_retrain
 
 
+def test_repeated_check_on_the_same_data_keeps_one_history_line(tmp_path):
+    history = tmp_path / "h.jsonl"
+    retrain.record_check(history, _result(trigger=False), retrained=False)
+    retrain.record_check(history, _result(trigger=False), retrained=False)
+    assert len(read_history(history)) == 1
+
+
+def test_two_checks_on_one_day_count_as_one_breach(tmp_path):
+    history = tmp_path / "h.jsonl"
+    for _ in range(2):
+        retrain.record_check(history, _result(trigger=False), retrained=False)
+    cfg = MonitorConfig(consecutive_breaches=3)
+    next_day = pd.Timestamp("2024-01-11T00:00:00+00:00")
+    should_retrain, reasons = decide_retrain(True, read_history(history), cfg, next_day, "1")
+    assert not should_retrain and "2/3" in reasons[0]
+
+
+def test_a_monitor_run_after_a_retrain_keeps_the_cooldown(tmp_path):
+    history = tmp_path / "h.jsonl"
+    retrain.record_check(history, _result(trigger=True), retrained=True)
+    retrain.record_check(history, _result(trigger=False), retrained=False)
+    same_day = pd.Timestamp("2024-01-10T00:00:00+00:00")
+    should_retrain, reasons = decide_retrain(
+        True, read_history(history), MonitorConfig(consecutive_breaches=1), same_day, "1"
+    )
+    assert not should_retrain and "cooldown" in reasons[0]
+
+
 def test_failed_training_leaves_no_retrain_entry(monkeypatch, tmp_path):
     calls = _Calls(trigger=True, promote=True)
     calls.install(monkeypatch)
