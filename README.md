@@ -81,6 +81,11 @@ make traffic                  # send the latest live EIA week to the API (repeat
 make monitor                  # drift (PSI, KS) and rolling MASE from the prediction log
 make retrain                  # monitor, then retrain + promotion gate if drift is confirmed
 make drift-demo               # planted distribution shift end to end (see RESULTS.md section 6)
+
+# Train in a container instead of a local environment
+make docker-build-train
+docker run --rm -v "$PWD/data:/app/data" -v "$PWD/mlruns:/app/mlruns" \
+  --env-file .env lstm-forecast-train:dev train-production
 ```
 
 ```bash
@@ -88,6 +93,33 @@ curl -s localhost:8080/forecast -H 'content-type: application/json' -d @- <<'EOF
 {"history": [ ...168 hourly values, oldest first... ], "last_timestamp": "2026-11-09T23:00:00Z", "horizon": 24}
 EOF
 ```
+
+## Architecture
+
+```mermaid
+flowchart TB
+    UCI[UCI benchmark] --> SNAP
+    EIA[EIA-930 hourly demand] --> SNAP[Versioned data snapshots<br/>SHA-256 manifest]
+    SNAP --> TRAIN[Backtest and production training]
+    TRAIN --> MLF[(MLflow runs and registry)]
+    TRAIN --> BUNDLE[Conformal intervals and ONNX export]
+    BUNDLE --> GATE{Promotion gate:<br/>beats seasonal naive<br/>and production?}
+    GATE -- promoted --> SERVED[Model bundle]
+    SERVED --> API[FastAPI and ONNX Runtime<br/>/forecast /health /metrics]
+    TRAFFIC[forecast traffic:<br/>latest live EIA week] --> API
+    API --> LOG[Prediction log, JSONL]
+    API --> PROM[Prometheus]
+    LOG --> MON[Monitor: PSI, KS,<br/>rolling MASE, coverage]
+    SNAP -. actuals .-> MON
+    MON -- drift confirmed --> TRAIN
+    MON --> PG[Pushgateway]
+    PG --> PROM
+    PROM --> GRAF[Grafana dashboard]
+```
+
+Training and serving share one artefact: the registered bundle is exactly what the gate
+scored, and the API runs it unchanged. Monitoring closes the loop by joining the logged
+predictions with the actuals that arrive later.
 
 ## How it works
 
@@ -141,7 +173,7 @@ src/forecast/
   monitor/    drift scores, rolling error, retrain decision, live traffic, planted-shift simulator
 configs/      data / model / train YAML (pydantic-validated: typos fail loudly)
 tests/        unit (incl. leakage canaries), contract (OpenAPI), integration (container)
-docker/       Dockerfile.serve
+docker/       Dockerfile.serve (API, no torch), Dockerfile.train (the full CLI)
 monitoring/   docker-compose stack: API, Prometheus, Pushgateway, Grafana dashboard
 experiments/  reference CSVs from the original study, reproduced + aligned results, plots
 ```

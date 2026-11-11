@@ -148,8 +148,7 @@ version's tags (`promotion.decision`, `promotion.reasons`, `promotion.compared_t
 
 ## 5. Serving (M3)
 
-- `docker run` serves forecasts: CI builds the image on an arm64 runner (the Lambda
-  architecture), starts it and runs the contract tests in `tests/integration/`
+- `docker run` serves forecasts: CI builds the image on an arm64 runner, starts it and runs the contract tests in `tests/integration/`
   against it.
 - HTTP round trip through the container (`POST /forecast`, 168 h in, 24 h out with
   intervals, 500 sequential requests on the Snapdragon X Plus, measured while a
@@ -177,7 +176,7 @@ ONNX Runtime is about 15x faster than single-threaded PyTorch at batch 1 (0.077 
 1.15 ms p50) and about 8x faster at batch 64. PyTorch's default 8 intra-op threads
 make this small model slower (15 ms p50 and 75 ms p95 at batch 1, where thread
 synchronisation dominates), which is why the serving Predictor honours an
-`ORT_THREADS` setting (the Lambda deployment in the next PR sets it to 1). The full
+`ORT_THREADS` setting for CPU-limited deployments. The full
 serving path adds about 30 microseconds on top of the ONNX call.
 
 

@@ -6,6 +6,7 @@ UV        ?= uv
 RUN       := $(UV) run --no-sync
 BENCHMARK ?= reference
 IMAGE     ?= lstm-forecast-serve
+TRAIN_IMAGE ?= lstm-forecast-train
 TAG       ?= dev
 MODEL_DIR ?= artifacts/model
 SIMULATION ?= simulate
@@ -14,7 +15,7 @@ DOCKER    ?= docker
 
 .PHONY: help install lock data train evaluate benchmark test test-all lint format clean \
         data-eia train-production promote export-model smoke-bundle mlflow-ui \
-        serve latency docker-build docker-run test-integration contract-snapshot \
+        serve latency docker-build docker-run docker-build-train test-integration contract-snapshot \
         monitoring-up monitoring-down drift-demo traffic monitor retrain
 
 help: ## Show this help
@@ -74,6 +75,9 @@ docker-build: ## Build the serving image around the bundle in $(MODEL_DIR)
 
 docker-run: ## Serve the image on :8080
 	docker run --rm -p 8080:8080 --name forecast-api $(IMAGE):$(TAG)
+
+docker-build-train: ## Build the training image (the `forecast` CLI with torch and MLflow)
+	docker build -f docker/Dockerfile.train -t $(TRAIN_IMAGE):$(TAG) .
 
 test-integration: ## Black-box tests against a running container ($$FORECAST_API_URL)
 	FORECAST_API_URL=$${FORECAST_API_URL:-http://localhost:8080} $(RUN) pytest -m integration -q
