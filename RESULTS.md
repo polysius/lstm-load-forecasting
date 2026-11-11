@@ -179,3 +179,54 @@ make this small model slower (15 ms p50 and 75 ms p95 at batch 1, where thread
 synchronisation dominates), which is why the serving Predictor honours an
 `ORT_THREADS` setting (the Lambda deployment in the next PR sets it to 1). The full
 serving path adds about 30 microseconds on top of the ONNX call.
+
+
+## 6. Monitoring and drift (M6)
+
+`make drift-demo` replays eight weeks of the live EIA-930 PJM series (2026-09-16 to
+2026-11-10) through the real API container, one simulated day per 1.2 s. The first model
+is trained on the first six months of the snapshot. Every simulated day the monitor
+scores the last seven days of logged predictions against the actuals. A deployment
+needs two consecutive breaches before it triggers a retrain, with at most one retrain
+every 72 h, and every retrain goes through the promotion gate. The planted shift
+multiplies load by 1.25 from 2026-10-07 (day 21). A control run uses the same code with
+a factor of 1.0.
+
+![Planted shift: PSI, rolling MASE, retrain triggers and the promotion](docs/planted_shift.png)
+
+| | Control (no shift) | Planted x1.25 shift |
+|---|---|---|
+| Daily checks | 49 | 49 |
+| Retrains triggered | **0** | 10 (first two days after the shift, then every 72 h while the model stayed worse) |
+| First trigger | none | 2026-10-09, two days after the shift |
+| Candidates promoted / rejected by the gate | 0 / 0 | 1 / 9 |
+| Rolling MASE h=24, before 10-14 | 0.66 | 0.85 |
+| Rolling MASE h=24, after 10-14 | 0.59 | 1.26 |
+| 80% interval coverage, after 10-14 | 0.84 | 0.55 |
+
+What the run shows, and what it does not:
+
+- **The detector separates the two runs.** With no shift there were no breaches
+  and no retrains. With the shift the first trigger came
+  two days after it.
+- **The trigger was performance, not input drift.** PSI never crossed its threshold in
+  either run (peak 5.2 against a calibrated threshold of 4.3 to 8.3). Breaches came from
+  rolling MASE h=24 exceeding 1.25 times the validated holdout MASE (0.753). The PSI
+  threshold is high because it is the 99th percentile of the PSI at the model's own
+  age, and seasonal change between windows already produces large values. A level
+  shift of 25% did not stand out from it. PSI is reported but did not carry this demo.
+- **Recovery was slow.** The gate rejected the first nine candidates. They were
+  trained mostly on pre-shift data, so they did not beat the deployed model on a
+  holdout that contains the shifted level. The first model that did was promoted on
+  2026-11-05, 29 days after the shift (holdout MASE 0.974 against 0.989 for seasonal
+  naive and 1.317 for the deployed model). The gate worked as designed, but a 29-day
+  recovery would be too slow for a real service. A level shift this large would call
+  for a different remedy, such as a recalibrated scaler or a shorter training window.
+- **The demo configs were tuned once on this series.** The first attempt used the
+  year-over-year reference, whose PSI threshold cannot be calibrated on two years of
+  data, so it sat on its 0.2 floor and retrained eleven days before the shift. The
+  shipped demo uses `configs/monitor_demo.yaml` (training-tail reference). The live
+  `configs/monitor.yaml` still uses year-over-year and therefore runs on the floor
+  threshold until a year of history exists.
+- Each run is a single replay of one series, so the timings are one sample, not an
+  average.

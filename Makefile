@@ -8,10 +8,14 @@ BENCHMARK ?= reference
 IMAGE     ?= lstm-forecast-serve
 TAG       ?= dev
 MODEL_DIR ?= artifacts/model
+SIMULATION ?= simulate
+# Docker binary; in WSL without Docker integration use: make drift-demo DOCKER=docker.exe
+DOCKER    ?= docker
 
 .PHONY: help install lock data train evaluate benchmark test test-all lint format clean \
         data-eia train-production promote export-model smoke-bundle mlflow-ui \
-        serve latency docker-build docker-run test-integration contract-snapshot
+        serve latency docker-build docker-run test-integration contract-snapshot \
+        monitoring-up monitoring-down drift-demo traffic monitor retrain
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -76,6 +80,30 @@ test-integration: ## Black-box tests against a running container ($$FORECAST_API
 
 contract-snapshot: ## Accept an intentional API contract change
 	$(RUN) forecast openapi --out tests/contract/openapi.snapshot.json
+
+# ---------------------------------------------------------------- monitoring and drift
+
+monitoring-up: ## API (serving $(MODEL_DIR)) + Prometheus + Pushgateway + Grafana at :3000
+	mkdir -p var/predictions
+	$(DOCKER) compose -f monitoring/docker-compose.yml up -d
+
+monitoring-down: ## Stop the monitoring stack
+	$(DOCKER) compose -f monitoring/docker-compose.yml down
+
+traffic: ## Send the latest live EIA week to the API ($$FORECAST_API_URL, default :8080)
+	$(RUN) forecast traffic --url $${FORECAST_API_URL:-http://localhost:8080}
+
+monitor: ## Score input drift and rolling error from the local prediction log
+	$(RUN) forecast monitor --report var/monitoring/drift-report.html
+
+retrain: ## Check drift; retrain and run the promotion gate if it is confirmed
+	$(RUN) forecast retrain --report var/monitoring/drift-report.html
+
+drift-demo: ## Planted distribution shift: drift -> retrain -> promotion (output in var/demo)
+	mkdir -p var/demo/serving var/demo/predictions
+	cp $(MODEL_DIR)/* var/demo/serving/
+	$(DOCKER) compose -f monitoring/docker-compose.yml --env-file monitoring/demo.env up -d
+	DOCKER_BIN=$(DOCKER) $(RUN) forecast simulate --config $(SIMULATION)
 
 # ---------------------------------------------------------------- quality
 

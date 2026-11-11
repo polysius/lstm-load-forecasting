@@ -1,0 +1,13 @@
+# Planted-shift demo on the UCI series (`forecast simulate --config simulate_uci`).
+production: demo_uci      # configs/train/demo_uci.yaml
+monitor: monitor_uci       # configs/monitor_uci.yaml (training-tail reference)
+days: 42                  # replay the last 6 weeks of the EIA snapshot
+warmup_days: 7            # a week of logged predictions before the first check
+shift_day: 21             # plant the shift half-way
+shift_factor: 1.25        # load x1.25 from then on (e.g. a large new load connecting)
+api_url: http://localhost:8080
+pushgateway_url: localhost:9091
+seconds_per_hour: 0.05    # replay speed: ~1 simulated day per 1.2 s of wall clock
+out_dir: var/demo
+restart_command: docker compose -f monitoring/docker-compose.yml restart api
+series_label: MT_001

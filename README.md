@@ -3,8 +3,8 @@
 Hourly electricity-load forecasting, grown from a leakage-audited research study
 into a system: a reproducible training package, MLflow experiment tracking with
 data-version hashes, a model registry guarded by a champion/challenger promotion
-gate, and an ONNX Runtime API with split-conformal prediction intervals that runs
-unchanged in Docker and on AWS Lambda.
+gate, and an ONNX Runtime API with split-conformal prediction intervals in Docker, and
+drift monitoring that triggers retraining. Everything runs locally.
 
 The model is deliberately small (a 32-unit LSTM). The focus is the system around it.
 
@@ -35,6 +35,10 @@ Full tables and the evidence behind every claim: **[RESULTS.md](RESULTS.md)**.
   from mixed configurations and fold schemes.
 - **Leakage canaries with a positive control**: a shuffled future-target covariate
   must not help, while the unshuffled one must be detected as a leak.
+- **Drift monitoring with a planted shift** (RESULTS.md section 6): no retrains without
+  a shift; with a 25% load shift the first retrain triggers two days later through rolling
+  MASE degradation. The promotion gate rejected nine candidates and accepted a
+  recovered model after 29 days.
 
 Aligned benchmark, mean MASE over the same 5 rolling-origin folds:
 
@@ -67,6 +71,13 @@ make mlflow-ui                # runs, metrics, data-version tags and the registr
 make docker-build docker-run  # http://localhost:8080/docs
 make test-integration         # contract tests against the running container
 make latency                  # PyTorch vs ONNX Runtime CPU latency -> experiments/results/
+
+# M4 - monitoring and drift (needs Docker, and EIA_API_KEY for live traffic)
+make monitoring-up            # API + Prometheus + Pushgateway + Grafana at http://localhost:3000
+make traffic                  # send the latest live EIA week to the API (repeat hourly if you like)
+make monitor                  # drift (PSI, KS) and rolling MASE from the prediction log
+make retrain                  # monitor, then retrain + promotion gate if drift is confirmed
+make drift-demo               # planted distribution shift end to end (see RESULTS.md section 6)
 ```
 
 ```bash
@@ -124,9 +135,11 @@ src/forecast/
   evaluate/   folds, backtest harness, metrics, reproduction report, holdout, latency
   train/      benchmark runner, MLflow tracking, production pipeline, conformal, ONNX export, promotion
   serve/      model bundle, ONNX predictor, FastAPI app, prediction log, metrics
+  monitor/    drift scores, rolling error, retrain decision, live traffic, planted-shift simulator
 configs/      data / model / train YAML (pydantic-validated: typos fail loudly)
 tests/        unit (incl. leakage canaries), contract (OpenAPI), integration (container)
-docker/       Dockerfile.serve (also the Lambda image, via Lambda Web Adapter)
+docker/       Dockerfile.serve
+monitoring/   docker-compose stack: API, Prometheus, Pushgateway, Grafana dashboard
 experiments/  reference CSVs from the original study, reproduced + aligned results, plots
 ```
 
@@ -136,5 +149,9 @@ experiments/  reference CSVs from the original study, reproduced + aligned resul
   LSTM is intentionally CPU-sized and untuned.
 - Split-conformal coverage assumes exchangeable residuals, which hourly load is not.
   Coverage is therefore measured on the holdout (and in production), not assumed.
+- The drift demo is one replay of one series. PSI did not trigger it, rolling MASE did,
+  and recovery took 29 days because early candidates had seen little shifted data.
+- Prometheus and Grafana are provisioned (`monitoring/`), but no dashboard screenshot is
+  included yet. The figure in RESULTS.md is drawn from the monitor history instead.
 - Nine published numbers from the original study cannot be reproduced from any
   committed code; they are kept as documented known differences, not silently replaced.

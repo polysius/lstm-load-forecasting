@@ -1,0 +1,12 @@
+# Planted-shift demo (`make drift-demo`, which also starts the monitoring stack).
+production: demo          # configs/train/demo.yaml
+monitor: monitor_demo        # configs/monitor_demo.yaml
+days: 56                  # replay the last 8 weeks of the EIA snapshot
+warmup_days: 7            # a week of logged predictions before the first check
+shift_day: 21             # plant the shift half-way
+shift_factor: 1.25        # load x1.25 from then on (e.g. a large new load connecting)
+api_url: http://localhost:8080
+pushgateway_url: localhost:9091
+seconds_per_hour: 0.05    # replay speed: ~1 simulated day per 1.2 s of wall clock
+out_dir: var/demo
+restart_command: docker compose -f monitoring/docker-compose.yml restart api

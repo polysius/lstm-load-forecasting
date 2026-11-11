@@ -1,0 +1,15 @@
+# Monitoring and drift-triggered retraining (`forecast monitor`, `forecast retrain`).
+series: PJM
+data: eia
+production: production          # configs/train/production.yaml
+window_hours: 168               # current window: the last 7 days
+reference: year_over_year       # same weeks a year earlier (seasonality-robust)
+reference_hours: 672            # 28-day reference centred on that week
+psi_bins: 10
+psi_threshold: auto            # q0.99 of the PSI's own null on history (floor 0.2)
+psi_threshold_quantile: 0.99
+psi_threshold_floor: 0.2
+mase_threshold: null            # optional absolute performance trigger
+mase_degradation: 1.25          # breach when rolling MASE h24 > 1.25 x validated holdout MASE
+consecutive_breaches: 2         # debounce: two daily checks in a row
+cooldown_hours: 72              # at most one retrain every 3 days

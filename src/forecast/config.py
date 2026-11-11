@@ -173,6 +173,25 @@ class ProductionConfig(_Strict):
         return self
 
 
+class MonitorConfig(_Strict):
+    """Drift and rolling-error monitoring plus the retraining trigger (``configs/monitor.yaml``)."""
+
+    series: str = "PJM"
+    data: str = "eia"
+    production: str = "production"
+    window_hours: int = Field(168, gt=24)
+    reference: Literal["year_over_year", "training_tail"] = "year_over_year"
+    reference_hours: int = Field(672, gt=24)
+    psi_bins: int = Field(10, ge=2)
+    psi_threshold: float | Literal["auto"] = "auto"
+    psi_threshold_quantile: float = Field(0.99, gt=0.5, lt=1.0)
+    psi_threshold_floor: float = Field(0.2, gt=0.0)
+    mase_threshold: float | None = None
+    mase_degradation: float = Field(1.25, gt=1.0)
+    consecutive_breaches: int = Field(2, ge=1)
+    cooldown_hours: int = Field(72, ge=0)
+
+
 # --------------------------------------------------------------------------- loaders
 
 
@@ -199,6 +218,11 @@ def load_benchmark_config(name_or_path: str | Path) -> BenchmarkConfig:
 
 def load_production_config(name_or_path: str | Path) -> ProductionConfig:
     return ProductionConfig.model_validate(read_yaml(resolve_config(name_or_path, "train")))
+
+
+def load_monitor_config(name_or_path: str | Path = "monitor") -> MonitorConfig:
+    path = resolve_config(name_or_path, ".")
+    return MonitorConfig.model_validate(read_yaml(path))
 
 
 def load_model_defaults(model: str) -> dict[str, Any]:

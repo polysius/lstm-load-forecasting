@@ -178,6 +178,72 @@ def cmd_bench_latency(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_monitor(args: argparse.Namespace) -> int:
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    from forecast.config import load_monitor_config
+    from forecast.monitor.retrain import check_drift, record_check
+
+    cfg = load_monitor_config(args.config)
+    history_path = Path(args.history)
+    result = check_drift(
+        cfg,
+        predictions=Path(args.predictions),
+        history_path=history_path,
+        model_dir=Path(args.model_dir),
+        report=Path(args.report) if args.report else None,
+    )
+    record_check(history_path, result, retrained=False)
+    if args.pushgateway:
+        from forecast.monitor.sinks import PushgatewaySink
+
+        PushgatewaySink(args.pushgateway).publish(
+            result.metrics(), series=cfg.series, timestamp=datetime.now(UTC)
+        )
+    print(result.to_json())
+    return 0
+
+
+def cmd_retrain(args: argparse.Namespace) -> int:
+    import json
+    from dataclasses import asdict
+    from pathlib import Path
+
+    from forecast.config import load_monitor_config
+    from forecast.monitor.retrain import retrain_if_drifted
+
+    outcome = retrain_if_drifted(
+        load_monitor_config(args.config),
+        predictions=Path(args.predictions),
+        history_path=Path(args.history),
+        model_dir=Path(args.model_dir),
+        report=Path(args.report) if args.report else None,
+        force=args.force,
+    )
+    print(json.dumps(asdict(outcome), default=float, indent=2))
+    return 0
+
+
+def cmd_traffic(args: argparse.Namespace) -> int:
+    import json
+
+    from forecast.config import load_data_config
+    from forecast.monitor.traffic import send_live_traffic
+
+    print(json.dumps(send_live_traffic(load_data_config(args.data), args.url), indent=2))
+    return 0
+
+
+def cmd_simulate(args: argparse.Namespace) -> int:
+    import json
+
+    from forecast.monitor.simulate import load_simulation_config, run_simulation
+
+    print(json.dumps(run_simulation(load_simulation_config(args.config)), indent=2, default=str))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="forecast", description=__doc__)
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -246,6 +312,36 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--warmup", type=int, default=100)
     p.add_argument("--out", default="experiments/results/latency.csv")
     p.set_defaults(func=cmd_bench_latency)
+
+    monitor_args = argparse.ArgumentParser(add_help=False)
+    monitor_args.add_argument("--config", default="monitor", help="configs/<name>.yaml")
+    monitor_args.add_argument("--predictions", default="var/predictions", help="prediction log dir")
+    monitor_args.add_argument("--history", default="var/monitoring/history.jsonl")
+    monitor_args.add_argument("--model-dir", default="artifacts/model", help="serving bundle")
+    monitor_args.add_argument("--report", help="write the Evidently drift report (HTML) here")
+
+    p = sub.add_parser(
+        "monitor", parents=[monitor_args], help="score input drift and rolling forecast error"
+    )
+    p.add_argument("--pushgateway", help="host:port of a Prometheus Pushgateway to publish to")
+    p.set_defaults(func=cmd_monitor)
+
+    p = sub.add_parser(
+        "retrain",
+        parents=[monitor_args],
+        help="check drift; if confirmed, retrain and apply the promotion gate",
+    )
+    p.add_argument("--force", action="store_true", help="retrain even without a drift trigger")
+    p.set_defaults(func=cmd_retrain)
+
+    p = sub.add_parser("traffic", help="send the latest live EIA week to a running API")
+    p.add_argument("--url", default="http://localhost:8080")
+    p.add_argument("--data", default="eia", help="configs/data/<name>.yaml")
+    p.set_defaults(func=cmd_traffic)
+
+    p = sub.add_parser("simulate", help="planted-shift demo: drift -> retrain -> promotion")
+    p.add_argument("--config", default="simulate", help="configs/<name>.yaml")
+    p.set_defaults(func=cmd_simulate)
 
     return parser
 
