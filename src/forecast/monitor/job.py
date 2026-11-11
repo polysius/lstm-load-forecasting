@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -250,12 +251,13 @@ def read_history(path: Path) -> list[dict[str, Any]]:
 
 def append_history(path: Path, result: MonitorResult) -> None:
     """Record a check; a repeat run on the same ``as_of`` replaces the earlier line."""
-    kept = [h for h in read_history(path) if h["as_of"] != result.as_of]
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        for h in kept:
-            f.write(json.dumps(h) + "\n")
-        f.write(result.to_json() + "\n")
+    path = Path(path)
+    kept = [json.dumps(h) for h in read_history(path) if h["as_of"] != result.as_of]
+    lines = [*kept, result.to_json()]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def load_prediction_records(uri: str, *, since: pd.Timestamp) -> list[dict[str, Any]]:

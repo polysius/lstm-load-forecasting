@@ -134,6 +134,29 @@ def test_a_monitor_run_after_a_retrain_keeps_the_cooldown(tmp_path):
     assert not should_retrain and "cooldown" in reasons[0]
 
 
+def test_failed_history_write_leaves_the_old_history_intact(tmp_path):
+    history = tmp_path / "h.jsonl"
+    retrain.record_check(history, _result(trigger=False), retrained=False)
+    before = history.read_text()
+
+    class Unserialisable(MonitorResult):
+        def to_json(self):
+            raise RuntimeError("cannot serialise")
+
+    broken = Unserialisable(
+        as_of="2024-01-11T00:00:00+00:00",
+        model_version="1",
+        reference={},
+        drift={},
+        performance={},
+        breach=True,
+        retrain=False,
+    )
+    with pytest.raises(RuntimeError):
+        retrain.record_check(history, broken, retrained=False)
+    assert history.read_text() == before
+
+
 def test_failed_training_leaves_no_retrain_entry(monkeypatch, tmp_path):
     calls = _Calls(trigger=True, promote=True)
     calls.install(monkeypatch)

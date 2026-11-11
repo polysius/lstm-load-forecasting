@@ -29,6 +29,11 @@ def test_missing_explicit_path_fails_loudly(tmp_path):
         load_simulation_config(str(tmp_path / "nope.yaml"))
 
 
+def test_mistyped_config_name_fails_loudly():
+    with pytest.raises(FileNotFoundError):
+        load_simulation_config("simulat_uci")
+
+
 def test_unknown_keys_are_rejected(tmp_path):
     path = tmp_path / "bad.yaml"
     path.write_text("shift_factr: 1.5\n")

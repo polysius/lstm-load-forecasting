@@ -86,11 +86,11 @@ def load_simulation_config(name: str = "simulate") -> SimulationConfig:
     """``configs/<name>.yaml``, or an explicit path to a YAML file."""
     if name.endswith((".yaml", ".yml")):
         path = Path(name)
-        if not path.exists():
-            raise FileNotFoundError(path)
     else:
         path = configs_dir() / f"{name}.yaml"
-    return SimulationConfig.model_validate(read_yaml(path) if path.exists() else {})
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return SimulationConfig.model_validate(read_yaml(path))
 
 
 def _wait_for_model(url: str, version: str, timeout: float = 90.0) -> None:
