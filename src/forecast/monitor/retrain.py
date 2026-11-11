@@ -48,7 +48,7 @@ def check_drift(
     model_dir: Path,
     report: Path | None = None,
 ) -> MonitorResult:
-    """Score drift and rolling error for the newest data; ``result.retrain`` is only a recommendation."""
+    """Score drift and rolling error for the newest data; ``retrain`` is a recommendation."""
     actuals, _ = load_series(load_data_config(cfg.data), data_dir())
     card = read_card(model_dir)
     since = actuals.index[-1] - pd.Timedelta(hours=2 * cfg.window_hours)
@@ -65,7 +65,7 @@ def check_drift(
 
 
 def record_check(history_path: Path, result: MonitorResult, *, retrained: bool) -> None:
-    """Append a check to the history; its ``retrain`` flag says a retrain happened, not that one was advised."""
+    """Append a check to the history; its ``retrain`` flag says a retrain happened."""
     already_retrained = any(
         h.get("retrain") and h["as_of"] == result.as_of for h in read_history(history_path)
     )

@@ -84,10 +84,8 @@ class Event:
 
 def load_simulation_config(name: str = "simulate") -> SimulationConfig:
     """``configs/<name>.yaml``, or an explicit path to a YAML file."""
-    if name.endswith((".yaml", ".yml")):
-        path = Path(name)
-    else:
-        path = configs_dir() / f"{name}.yaml"
+    is_path = name.endswith((".yaml", ".yml"))
+    path = Path(name) if is_path else configs_dir() / f"{name}.yaml"
     if not path.exists():
         raise FileNotFoundError(path)
     return SimulationConfig.model_validate(read_yaml(path))

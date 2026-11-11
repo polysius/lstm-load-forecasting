@@ -136,7 +136,9 @@ def decide_retrain(
         return False, ["no breach"]
     previous = [h for h in history if pd.Timestamp(h["as_of"]) < as_of]
     retrains = [
-        pd.Timestamp(h["as_of"]) for h in history if h.get("retrain") and pd.Timestamp(h["as_of"]) <= as_of
+        pd.Timestamp(h["as_of"])
+        for h in history
+        if h.get("retrain") and pd.Timestamp(h["as_of"]) <= as_of
     ]
     if model_version is not None:
         previous = [h for h in previous if str(h.get("model_version")) == str(model_version)]
