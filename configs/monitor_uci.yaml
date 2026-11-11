@@ -1,0 +1,18 @@
+# Monitoring for the UCI demo series. The year-over-year reference does not suit
+# this single customer: its consumption collapsed between 2013 and 2014 (late-autumn
+# mean 8.8 kW -> 2.1 kW), so last year's weeks flag drift permanently (PSI ~7).
+# Compare against the last 28 days the production model was scored on instead.
+series: MT_001
+data: uci
+production: demo_uci
+window_hours: 168
+reference: training_tail
+reference_hours: 672
+psi_bins: 10
+psi_threshold: auto            # q0.99 of the PSI's own null on history (floor 0.2)
+psi_threshold_quantile: 0.99
+psi_threshold_floor: 0.2
+mase_threshold: null            # optional absolute performance trigger
+mase_degradation: 1.25          # breach when rolling MASE h24 > 1.25 x validated holdout MASE
+consecutive_breaches: 2
+cooldown_hours: 72

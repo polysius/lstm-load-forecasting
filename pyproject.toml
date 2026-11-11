@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "lstm-load-forecasting"
 version = "0.2.0"
-description = "Leakage-audited load forecasting service: LSTM vs baselines, MLflow registry, ONNX serving on AWS Lambda, drift-triggered retraining"
+description = "Leakage-audited load forecasting service: LSTM vs baselines, MLflow registry, ONNX serving, drift monitoring and retraining, run locally"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -51,7 +51,6 @@ monitor = [
     "lstm-load-forecasting[data]",
     "evidently>=0.6",
     "scipy>=1.12",
-    "boto3>=1.34",
     "prometheus-client>=0.20",
 ]
 

@@ -1,0 +1,19 @@
+# Monitoring settings for the planted-shift demo (configs/simulate.yaml).
+# The live config (monitor.yaml) compares with the same weeks a year earlier, but the
+# PSI threshold cannot be calibrated that way on the two years of EIA data the API
+# serves. Here the reference is the model's own training tail, so the threshold comes
+# from the PSI the history reaches at the same lag.
+series: PJM
+data: eia
+production: demo
+window_hours: 168
+reference: training_tail
+reference_hours: 672
+psi_bins: 10
+psi_threshold: auto
+psi_threshold_quantile: 0.99
+psi_threshold_floor: 0.2
+mase_threshold: null
+mase_degradation: 1.25
+consecutive_breaches: 2
+cooldown_hours: 72

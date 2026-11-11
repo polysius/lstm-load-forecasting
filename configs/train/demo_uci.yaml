@@ -1,0 +1,21 @@
+# Planted-shift demo on the UCI benchmark series (no API key needed). Same settings
+# as demo.yaml: shorter embargo and a 90-day training window so retrains are fast
+# and can learn from recent (post-shift) data.
+model_name: load-forecaster-uci-demo
+data: uci
+experiment: planted-shift-demo-uci
+seed: 42
+lstm:
+  min_epochs: 5
+covariates: []
+holdout_hours: 72
+calibration_hours: 72
+train_window_hours: 2160
+interval_levels: [0.8, 0.95]
+default_level: 0.8
+eval_stride: 1
+scale_reference_hours: 672
+promotion:
+  metric: mase_mean
+  min_improvement: 0.0
+  must_beat_baseline: seasonal_naive

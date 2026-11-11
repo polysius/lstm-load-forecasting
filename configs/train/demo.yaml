@@ -1,0 +1,21 @@
+# Production pipeline settings for the planted-shift demo: identical code path,
+# shorter embargo and a 180-day training window so retrains are fast and can learn
+# from recent (post-shift) data.
+model_name: load-forecaster-pjm-demo
+data: eia
+experiment: planted-shift-demo
+seed: 42
+lstm:
+  min_epochs: 5
+covariates: []
+holdout_hours: 120
+calibration_hours: 120
+train_window_hours: 4320
+interval_levels: [0.8, 0.95]
+default_level: 0.8
+eval_stride: 1
+scale_reference_hours: 672
+promotion:
+  metric: mase_mean
+  min_improvement: 0.0
+  must_beat_baseline: seasonal_naive

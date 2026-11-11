@@ -1,0 +1,422 @@
+{
+  "uid": "forecast-service",
+  "title": "Load forecasting service",
+  "description": "Latency, error rate, input drift and rolling error for the forecast API",
+  "tags": [
+    "forecasting",
+    "mlops"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": true,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Serving model version",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (model_version) (forecast_model_info)",
+          "legendFormat": "v{{model_version}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "name",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Simulated day",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(forecast_simulated_day)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Forecast requests / s",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(forecast_requests_total{endpoint=\"/forecast\"}[30s]))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "none",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Retrains triggered",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(forecast_retrains_total) or vector(0)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency /forecast (ms)",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1000 * histogram_quantile(0.5, sum by (le) (rate(forecast_request_latency_seconds_bucket{endpoint=\"/forecast\"}[30s])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "1000 * histogram_quantile(0.95, sum by (le) (rate(forecast_request_latency_seconds_bucket{endpoint=\"/forecast\"}[30s])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "1000 * histogram_quantile(0.99, sum by (le) (rate(forecast_request_latency_seconds_bucket{endpoint=\"/forecast\"}[30s])))",
+          "legendFormat": "p99"
+        },
+        {
+          "refId": "D",
+          "expr": "1000 * histogram_quantile(0.5, sum by (le) (rate(forecast_inference_latency_seconds_bucket[30s])))",
+          "legendFormat": "ONNX inference p50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 5
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate (%)",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * (sum(rate(forecast_requests_total{endpoint=\"/forecast\",status=~\"5..\"}[30s])) or vector(0)) / clamp_min(sum(rate(forecast_requests_total{endpoint=\"/forecast\"}[30s])), 1e-9)",
+          "legendFormat": "5xx"
+        },
+        {
+          "refId": "B",
+          "expr": "100 * (sum(rate(forecast_requests_total{endpoint=\"/forecast\",status=~\"4..\"}[30s])) or vector(0)) / clamp_min(sum(rate(forecast_requests_total{endpoint=\"/forecast\"}[30s])), 1e-9)",
+          "legendFormat": "4xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Input drift: PSI vs calibrated threshold",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(forecast_drift_psi)",
+          "legendFormat": "PSI (quantile bins)"
+        },
+        {
+          "refId": "B",
+          "expr": "max(forecast_drift_threshold)",
+          "legendFormat": "threshold (q99 of history)"
+        },
+        {
+          "refId": "C",
+          "expr": "max(forecast_drift_ks_statistic)",
+          "legendFormat": "KS statistic"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "scaleDistribution": {
+              "type": "symlog",
+              "log": 10,
+              "linearThreshold": 0.1
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold (q99 of history)"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "KS statistic"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rolling 7-day error (MASE) and 80% interval coverage",
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(forecast_rolling_mase_h1)",
+          "legendFormat": "MASE h=1"
+        },
+        {
+          "refId": "B",
+          "expr": "max(forecast_rolling_mase_h24)",
+          "legendFormat": "MASE h=24"
+        },
+        {
+          "refId": "C",
+          "expr": "max(forecast_interval_coverage)",
+          "legendFormat": "coverage (80% PI)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "coverage (80% PI)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
