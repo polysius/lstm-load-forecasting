@@ -77,7 +77,7 @@ make monitoring-up            # API + Prometheus + Pushgateway + Grafana at http
 make traffic                  # send the latest live EIA week to the API (repeat hourly if you like)
 make monitor                  # drift (PSI, KS) and rolling MASE from the prediction log
 make retrain                  # monitor, then retrain + promotion gate if drift is confirmed
-make drift-demo               # planted distribution shift end to end (see Monitoring below)
+make drift-demo               # planted distribution shift end to end (see RESULTS.md section 6)
 ```
 
 ```bash
