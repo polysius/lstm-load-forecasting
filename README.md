@@ -35,10 +35,13 @@ Full tables and the evidence behind every claim: **[RESULTS.md](RESULTS.md)**.
   from mixed configurations and fold schemes.
 - **Leakage canaries with a positive control**: a shuffled future-target covariate
   must not help, while the unshuffled one must be detected as a leak.
-- **Drift monitoring with a planted shift** (RESULTS.md section 6): no retrains without
+- **Drift monitoring with a planted shift** (RESULTS.md section 6, with the Grafana
+  dashboard in `docs/grafana_dashboard.png`): no retrains without
   a shift; with a 25% load shift the first retrain triggers two days later through rolling
   MASE degradation. The promotion gate rejected nine candidates and accepted a
   recovered model after 29 days.
+
+![Grafana dashboard after the planted-shift replay](docs/grafana_dashboard.png)
 
 Aligned benchmark, mean MASE over the same 5 rolling-origin folds:
 
@@ -151,7 +154,5 @@ experiments/  reference CSVs from the original study, reproduced + aligned resul
   Coverage is therefore measured on the holdout (and in production), not assumed.
 - The drift demo is one replay of one series. PSI did not trigger it, rolling MASE did,
   and recovery took 29 days because early candidates had seen little shifted data.
-- Prometheus and Grafana are provisioned (`monitoring/`), but no dashboard screenshot is
-  included yet. The figure in RESULTS.md is drawn from the monitor history instead.
 - Nine published numbers from the original study cannot be reproduced from any
   committed code; they are kept as documented known differences, not silently replaced.

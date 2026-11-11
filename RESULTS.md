@@ -204,6 +204,15 @@ a factor of 1.0.
 | Rolling MASE h=24, after 10-14 | 0.59 | 1.26 |
 | 80% interval coverage, after 10-14 | 0.84 | 0.55 |
 
+The Grafana dashboard recorded a second replay of the same configuration. That replay
+reproduced the outcome exactly: 10 retrain triggers, 9 candidates rejected, and the
+11th registered model (v11) promoted on 2026-11-05. Time runs left to right in wall
+clock (about 17 minutes for the eight simulated weeks). Latency has gaps while the
+simulator trains a candidate and sends no traffic. The error rate stays at zero, and
+the Retrains triggered panel ends at 10.
+
+![Grafana dashboard after the planted-shift replay](docs/grafana_dashboard.png)
+
 What the run shows, and what it does not:
 
 - **The detector separates the two runs.** With no shift there were no breaches
